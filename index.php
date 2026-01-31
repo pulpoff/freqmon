@@ -401,6 +401,52 @@
             background: var(--border-color);
             border-radius: 2px;
         }
+
+        .section-title-toggle {
+            font-size: 0.6rem;
+            color: #a0a8b2;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.3rem;
+            padding: 0.3rem 0.2rem;
+            border-bottom: 1px solid var(--border-color);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: color 0.2s;
+        }
+
+        .section-title-toggle:hover {
+            color: #ffffff;
+        }
+
+        .section-title-toggle .chevron {
+            transition: transform 0.3s;
+        }
+
+        .section-title-toggle.expanded .chevron {
+            transform: rotate(180deg);
+        }
+
+        .transactions-container {
+            display: none;
+            overflow: hidden;
+        }
+
+        .transactions-container.show {
+            display: block;
+        }
+
+        .server-card.transactions-expanded {
+            grid-column: span 2;
+        }
+
+        @media (max-width: 1200px) {
+            .server-card.transactions-expanded {
+                grid-column: span 1;
+            }
+        }
     </style>
 </head>
 <body>
@@ -523,6 +569,19 @@
         const REFRESH_SECONDS = 60;
         let serverData = {}; // Store server data globally for modal
         const tradeCache = {}; // Store trade data for chart modal
+
+        function toggleTransactions(serverNum, toggleElement) {
+            const container = document.getElementById(`transactions-${serverNum}`);
+            const isExpanded = container.classList.contains('show');
+
+            if (isExpanded) {
+                container.classList.remove('show');
+                toggleElement.classList.remove('expanded');
+            } else {
+                container.classList.add('show');
+                toggleElement.classList.add('expanded');
+            }
+        }
 
         function showStrategyInfo(serverNum, event) {
             event.stopPropagation();
@@ -1081,7 +1140,11 @@
                             <canvas id="chart-${server.server_num}"></canvas>
                         </div>
 
-                        <div class="section-title"><i class="bi bi-list-ul me-1"></i>Last 20 Transactions</div>
+                        <div class="section-title-toggle" onclick="toggleTransactions(${server.server_num}, this)">
+                            <span><i class="bi bi-list-ul me-1"></i>Last 20 Transactions ${closedTrades.length > 0 ? `(${closedTrades.length})` : ''}</span>
+                            <i class="bi bi-chevron-down chevron"></i>
+                        </div>
+                        <div class="transactions-container" id="transactions-${server.server_num}">
                         ${closedTrades.length > 0 ? `
                         <div class="trades-scroll">
                             <table class="table table-dark mini-table mb-0">
@@ -1118,6 +1181,7 @@
                             </table>
                         </div>
                         ` : '<div class="no-data">No closed trades yet</div>'}
+                        </div>
                         ` : `
                         <div class="text-center text-muted py-4">
                             <i class="bi bi-wifi-off fs-2"></i>
