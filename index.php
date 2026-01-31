@@ -1461,5 +1461,25 @@
         // Auto refresh
         refreshInterval = setInterval(loadDashboard, REFRESH_SECONDS * 1000);
     </script>
+
+    <footer class="site-footer">
+        <a href="https://github.com/pulpoff/freqmon" target="_blank">&copy;2026 freqmon</a>
+    </footer>
+
+    <style>
+        .site-footer {
+            text-align: center;
+            padding: 1rem 0;
+            margin-top: 1rem;
+        }
+        .site-footer a {
+            color: var(--text-secondary);
+            font-size: 0.7rem;
+            text-decoration: none;
+        }
+        .site-footer a:hover {
+            color: var(--accent-blue);
+        }
+    </style>
 </body>
 </html>
