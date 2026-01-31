@@ -1,0 +1,21 @@
+# Deny access to sensitive files
+<FilesMatch "^\.env$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Deny access to src directory
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteRule ^src/ - [F,L]
+</IfModule>
+
+# Default index
+DirectoryIndex dashboard.php index.php
+
+# Security headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+</IfModule>
