@@ -1055,7 +1055,7 @@
                             </div>
                             <div class="mini-stat">
                                 <span class="mini-stat-label">Trades</span>
-                                <span class="mini-stat-value">${tradesBeforeToday}${tradesToday > 0 ? ` <span class="text-info">+${tradesToday}</span>` : ''}</span>
+                                <span class="mini-stat-value">${closedCount}${tradesToday > 0 ? ` <span class="text-info">+${tradesToday}</span>` : ''}</span>
                             </div>
                             <div class="mini-stat">
                                 <span class="mini-stat-label">Win/Loss</span>
@@ -1067,7 +1067,7 @@
                             </div>
                             <div class="mini-stat">
                                 <span class="mini-stat-label">Balance</span>
-                                <span class="mini-stat-value">${profitToday !== 0 ? balanceBeforeToday.toFixed(1) + ` <span class="${profitToday >= 0 ? 'text-success' : 'text-danger'}">${profitToday >= 0 ? '+' : ''}${profitToday.toFixed(1)}</span>` : balance.toFixed(1)}</span>
+                                <span class="mini-stat-value">${balance.toFixed(1)}${profitToday !== 0 ? ` <span class="${profitToday >= 0 ? 'text-success' : 'text-danger'}">${profitToday >= 0 ? '+' : ''}${profitToday.toFixed(1)}</span>` : ''}</span>
                             </div>
                         </div>
 
