@@ -191,53 +191,66 @@
             color: var(--accent-blue);
             font-size: 0.85rem;
         }
-        
+
         .trade-modal-content {
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            max-width: 700px;
-            width: 95%;
-            max-height: 90vh;
+            max-width: 500px;
+            width: 92%;
+            max-height: 85vh;
             overflow-y: auto;
         }
-        
-        .trade-chart-container {
-            height: 300px;
-            margin: 1rem 0;
+
+        .trade-modal-content .modal-header {
+            padding: 0.6rem 0.8rem;
         }
-        
+
+        .trade-modal-content .modal-header h5 {
+            font-size: 0.9rem;
+        }
+
+        .trade-modal-content .modal-body {
+            padding: 0.6rem 0.8rem;
+        }
+
+        .trade-chart-container {
+            height: 180px;
+            margin: 0.5rem 0;
+        }
+
         .trade-details {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 0.5rem;
-            margin-top: 1rem;
+            gap: 0.3rem;
+            margin-top: 0.5rem;
         }
-        
+
         .trade-detail {
-            padding: 0.5rem;
+            padding: 0.3rem 0.4rem;
             background: var(--bg-tertiary);
             border-radius: 4px;
         }
-        
+
         .trade-detail-label {
-            font-size: 0.65rem;
+            font-size: 0.55rem;
             color: var(--text-secondary);
             text-transform: uppercase;
         }
-        
+
         .trade-detail-value {
-            font-size: 0.85rem;
+            font-size: 0.75rem;
             color: #fff;
             font-weight: 500;
         }
-        
+
         .trade-loading {
             text-align: center;
-            padding: 2rem;
+            padding: 1.5rem;
             color: var(--text-secondary);
+            font-size: 0.8rem;
         }
-        
+
         .badge-online {
             background-color: rgba(63, 185, 80, 0.2);
             color: var(--accent-green);
