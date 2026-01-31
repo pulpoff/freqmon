@@ -39,11 +39,10 @@ try {
     foreach ($servers as $num => $serverConfig) {
         echo "<div class='server'>";
         echo "<h3>Server #{$num}: {$serverConfig['name']}</h3>";
-        echo "<p>Host: <code>{$serverConfig['host']}:{$serverConfig['port']}</code></p>";
-        
+        echo "<p>Host: <code>{$serverConfig['host']}</code></p>";
+
         $client = new FreqtradeClient(
             $serverConfig['host'],
-            $serverConfig['port'],
             $serverConfig['username'],
             $serverConfig['password']
         );

@@ -1,19 +1,19 @@
-# FreqTrade Multi-Server Dashboard
+# freqmon
 
 A PHP-based dashboard to monitor multiple FreqTrade trading bot instances from a single interface.
 
-![Dashboard Preview](https://via.placeholder.com/800x400?text=FreqTrade+Dashboard)
+![Dashboard Preview](freqmonscr.png)
 
 ## Features
 
-- 📊 **Aggregated Statistics** - View total profit, trades, and win rate across all servers
-- 🖥️ **Server Overview Cards** - Quick status view of each FreqTrade instance
-- 📈 **Performance Chart** - Last 10 days profit/trade visualization with Chart.js
-- 💹 **Recent Transactions** - Combined view of latest trades from all servers
-- 🔄 **Open Trades Monitor** - Track all currently open positions
-- 🔄 **Auto-Refresh** - Configurable auto-refresh interval
-- 🌙 **Dark Theme** - Easy on the eyes for 24/7 monitoring
-- ⚡ **AJAX Live Updates** - Real-time updates without page reload (dashboard.php)
+- Aggregated Statistics - View total profit, trades, and win rate across all servers
+- Server Overview Cards - Quick status view of each FreqTrade instance
+- Performance Chart - Last 10 days profit/trade visualization with Chart.js
+- Recent Transactions - Combined view of latest trades from all servers
+- Open Trades Monitor - Track all currently open positions
+- Auto-Refresh - Configurable auto-refresh interval
+- Dark Theme - Easy on the eyes for 24/7 monitoring
+- AJAX Live Updates - Real-time updates without page reload
 
 ## Requirements
 
@@ -27,8 +27,8 @@ A PHP-based dashboard to monitor multiple FreqTrade trading bot instances from a
 
 ```bash
 # Create directory for the dashboard
-mkdir /var/www/freqtrade-dashboard
-cd /var/www/freqtrade-dashboard
+mkdir /var/www/freqmon
+cd /var/www/freqmon
 
 # Copy files or clone from your repository
 ```
@@ -53,7 +53,7 @@ Edit `.env` file with your FreqTrade server details:
 SERVER_1=Future55|192.168.10.100:4100|freqtrader|your_password
 SERVER_2=Future60|192.168.10.100:4200|freqtrader|your_password
 SERVER_3=Future65|192.168.10.100:4300|freqtrader|your_password
-# ... add all 12 servers
+# ... add all servers
 
 # Dashboard Settings
 REFRESH_INTERVAL=60
@@ -79,14 +79,14 @@ Ensure each FreqTrade instance has the REST API enabled in `config.json`:
 }
 ```
 
-⚠️ **Security Note**: Only expose the API within your private network. Use VPN or SSH tunnels for remote access.
+**Security Note**: Only expose the API within your private network. Use VPN or SSH tunnels for remote access.
 
 ### 5. Start the Dashboard
 
 **Option A: PHP Built-in Server (Development)**
 
 ```bash
-cd /var/www/freqtrade-dashboard
+cd /var/www/freqmon
 php -S 0.0.0.0:8888
 ```
 
@@ -94,10 +94,10 @@ php -S 0.0.0.0:8888
 
 ```apache
 <VirtualHost *:80>
-    ServerName freqtrade.local
-    DocumentRoot /var/www/freqtrade-dashboard
-    
-    <Directory /var/www/freqtrade-dashboard>
+    ServerName freqmon.local
+    DocumentRoot /var/www/freqmon
+
+    <Directory /var/www/freqmon>
         AllowOverride All
         Require all granted
     </Directory>
@@ -109,9 +109,9 @@ php -S 0.0.0.0:8888
 ```nginx
 server {
     listen 80;
-    server_name freqtrade.local;
-    root /var/www/freqtrade-dashboard;
-    index index.php dashboard.php;
+    server_name freqmon.local;
+    root /var/www/freqmon;
+    index index.php;
 
     location ~ \.php$ {
         fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;
@@ -121,48 +121,15 @@ server {
 }
 ```
 
-## Usage
-
-### Dashboard Views
-
-| URL | Description |
-|-----|-------------|
-| `index.php` | Standard dashboard with meta-refresh |
-| `dashboard.php` | Live dashboard with AJAX updates (recommended) |
-| `api.php` | JSON API endpoint for custom integrations |
-
-### API Endpoint
-
-The `api.php` endpoint returns JSON data:
-
-```bash
-curl http://localhost:8888/api.php
-```
-
-Response:
-```json
-{
-    "success": true,
-    "timestamp": "2025-01-30 15:30:00",
-    "data": {
-        "servers": {...},
-        "totals": {...},
-        "transactions": [...],
-        "daily": [...],
-        "open_trades": [...]
-    }
-}
-```
-
 ## File Structure
 
 ```
-freqtrade-dashboard/
+freqmon/
 ├── .env.example        # Configuration template
 ├── .env                # Your configuration (create this)
-├── index.php           # Main dashboard (meta-refresh)
-├── dashboard.php       # Live dashboard (AJAX)
+├── index.php           # Main dashboard with AJAX updates
 ├── api.php             # JSON API endpoint
+├── debug.php           # Debug utility for testing API connections
 ├── README.md           # This file
 └── src/
     ├── Config.php          # Configuration loader
@@ -212,44 +179,6 @@ freqtrade-dashboard/
 3. Enable HTTPS if accessible outside localhost
 4. Use strong, unique passwords for each FreqTrade instance
 5. Consider adding authentication to the dashboard itself
-
-## Customization
-
-### Adding More Statistics
-
-Edit `src/Dashboard.php` to fetch additional data:
-
-```php
-public function getPerformance(): ?array
-{
-    // Add performance by pair
-    return $this->get('performance');
-}
-```
-
-### Changing Refresh Interval
-
-Edit `.env`:
-
-```env
-REFRESH_INTERVAL=30  # Refresh every 30 seconds
-```
-
-### Modifying Colors
-
-Edit the CSS in `index.php` or `dashboard.php`:
-
-```css
-:root {
-    --bs-body-bg: #0d1117;      /* Background color */
-    --card-bg: #161b22;          /* Card background */
-    --card-border: #30363d;      /* Card borders */
-}
-```
-
-## Contributing
-
-Feel free to submit issues and pull requests!
 
 ## License
 
