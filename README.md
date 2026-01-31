@@ -4,6 +4,11 @@ A PHP-based dashboard to monitor multiple FreqTrade trading bot instances from a
 
 ![Dashboard Preview](freqmonscr.png)
 
+### Quick Trade View
+
+![Trade View 1](scr1.png)
+![Trade View 2](scr2.png)
+
 ## Features
 
 - Aggregated Statistics - View total profit, trades, and win rate across all servers
