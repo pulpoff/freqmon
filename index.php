@@ -477,13 +477,53 @@
         </div>
     </div>
 
+    <!-- Loading Modal -->
+    <div class="modal-overlay" id="loadingModal">
+        <div class="loading-modal-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Loading servers...</div>
+            <div class="loading-progress" id="loadingProgress"></div>
+        </div>
+    </div>
+
+    <style>
+        .loading-modal-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 2rem 3rem;
+            text-align: center;
+        }
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            margin: 0 auto 1rem;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        .loading-text {
+            color: var(--text-primary);
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        .loading-progress {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+    </style>
+
     <script>
         const charts = {};
         let refreshInterval;
         const REFRESH_SECONDS = 60;
         let serverData = {}; // Store server data globally for modal
         const tradeCache = {}; // Store trade data for chart modal
-        
+
         function showStrategyInfo(serverNum, event) {
             event.stopPropagation();
             const server = serverData[serverNum];
@@ -521,7 +561,7 @@
             
             // Build summary line like: Avg Profit 1.624% (∑ 9.747%) in 6 Trades, with an average duration of 0:19:12
             const summaryLine = `Avg Profit ${avgProfitPerTrade} (∑ ${totalProfitPct}) in ${tradeCount} Trades, avg duration ${avgDuration}`;
-            
+
             modalBody.innerHTML = `
                 <div class="info-summary">${summaryLine}</div>
                 <div class="info-row">
@@ -585,10 +625,10 @@
                     <span class="info-value">${(balance.total || 0).toFixed(2)} ${escapeHtml(stakeCurrency)}</span>
                 </div>
             `;
-            
+
             document.getElementById('strategyModal').classList.add('show');
         }
-        
+
         function closeModal(event) {
             if (event && event.target !== event.currentTarget) return;
             document.getElementById('strategyModal').classList.remove('show');
@@ -603,7 +643,6 @@
         });
         
         let tradeChart = null;
-        let balanceChart = null;
 
         function closeTradeModal(event) {
             if (event && event.target !== event.currentTarget) return;
@@ -611,10 +650,6 @@
             if (tradeChart) {
                 tradeChart.destroy();
                 tradeChart = null;
-            }
-            if (balanceChart) {
-                balanceChart.destroy();
-                balanceChart = null;
             }
         }
         
@@ -741,25 +776,7 @@
                 
                 const profitColor = (trade.profit_abs || 0) >= 0 ? '#3fb950' : '#f85149';
 
-                // Get balance history data from server
-                const server = serverData[trade._serverNum];
-                const dailyData = server?.daily?.data || [];
-                const currentBalance = server?.balance?.total || 0;
-
-                // Build balance history HTML if we have daily data
-                let balanceChartHtml = '';
-                if (dailyData.length > 0) {
-                    balanceChartHtml = `
-                        <div class="section-title" style="margin-bottom: 0.5rem;"><i class="bi bi-graph-up me-1"></i>Balance History (Last 20 Days)</div>
-                        <div class="balance-chart-container" style="height: 120px; margin-bottom: 1rem;">
-                            <canvas id="balanceChartCanvas"></canvas>
-                        </div>
-                    `;
-                }
-
                 document.getElementById('tradeModalBody').innerHTML = `
-                    ${balanceChartHtml}
-                    <div class="section-title" style="margin-bottom: 0.5rem;"><i class="bi bi-currency-exchange me-1"></i>Price Chart</div>
                     <div class="trade-chart-container">
                         <canvas id="tradeChartCanvas"></canvas>
                     </div>
@@ -858,86 +875,6 @@
                         }
                     }
                 });
-
-                // Create balance history chart if we have daily data
-                if (dailyData.length > 0) {
-                    // Reverse so oldest is first, take last 20 days
-                    const reversedDaily = [...dailyData].reverse().slice(-20);
-
-                    // Calculate cumulative balance working backwards from current
-                    let balanceHistory = [];
-                    let runningBalance = currentBalance;
-
-                    // First, compute the balance for each day going backwards
-                    const profitsByDay = {};
-                    for (const d of reversedDaily) {
-                        profitsByDay[d.date] = d.abs_profit || 0;
-                    }
-
-                    // Calculate the balance at each day's end
-                    // Start from current balance and work backwards through daily profits
-                    const balances = [];
-                    let bal = currentBalance;
-                    for (let i = reversedDaily.length - 1; i >= 0; i--) {
-                        balances.unshift({ date: reversedDaily[i].date, balance: bal });
-                        bal -= (reversedDaily[i].abs_profit || 0);
-                    }
-
-                    const balLabels = balances.map(b => {
-                        const date = new Date(b.date);
-                        return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-                    });
-                    const balValues = balances.map(b => b.balance);
-
-                    const balCtx = document.getElementById('balanceChartCanvas');
-                    if (balCtx) {
-                        balanceChart = new Chart(balCtx, {
-                            type: 'line',
-                            data: {
-                                labels: balLabels,
-                                datasets: [{
-                                    label: 'Balance',
-                                    data: balValues,
-                                    borderColor: '#58a6ff',
-                                    backgroundColor: 'rgba(88, 166, 255, 0.1)',
-                                    fill: true,
-                                    borderWidth: 2,
-                                    pointRadius: 2,
-                                    tension: 0.3
-                                }]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                events: [],
-                                interaction: { mode: null },
-                                plugins: {
-                                    legend: { display: false },
-                                    tooltip: { enabled: false }
-                                },
-                                scales: {
-                                    x: {
-                                        grid: { display: false },
-                                        ticks: {
-                                            color: '#8b949e',
-                                            font: { size: 9 },
-                                            maxRotation: 0,
-                                            maxTicksLimit: 10
-                                        }
-                                    },
-                                    y: {
-                                        grid: { color: 'rgba(48, 54, 61, 0.3)' },
-                                        ticks: {
-                                            color: '#8b949e',
-                                            font: { size: 9 },
-                                            callback: v => v.toFixed(0)
-                                        }
-                                    }
-                                }
-                            }
-                        });
-                    }
-                }
 
             } catch (error) {
                 console.error('Failed to load chart:', error);
@@ -1133,12 +1070,17 @@
                                 <span class="mini-stat-value">${profitToday !== 0 ? balanceBeforeToday.toFixed(1) + ` <span class="${profitToday >= 0 ? 'text-success' : 'text-danger'}">${profitToday >= 0 ? '+' : ''}${profitToday.toFixed(1)}</span>` : balance.toFixed(1)}</span>
                             </div>
                         </div>
-                        
+
+                        <div class="section-title"><i class="bi bi-graph-up me-1"></i>Balance History</div>
+                        <div class="chart-container">
+                            <canvas id="balance-chart-${server.server_num}"></canvas>
+                        </div>
+
                         <div class="section-title"><i class="bi bi-bar-chart me-1"></i>Daily Performance</div>
                         <div class="chart-container">
                             <canvas id="chart-${server.server_num}"></canvas>
                         </div>
-                        
+
                         <div class="section-title"><i class="bi bi-list-ul me-1"></i>Last 20 Transactions</div>
                         ${closedTrades.length > 0 ? `
                         <div class="trades-scroll">
@@ -1279,17 +1221,108 @@
                 }
             });
         }
-        
+
+        const balanceCharts = {};
+
+        function createBalanceChart(serverId, dailyData, currentBalance) {
+            const ctx = document.getElementById(`balance-chart-${serverId}`);
+            if (!ctx) return;
+
+            // Destroy existing chart
+            if (balanceCharts[serverId]) {
+                balanceCharts[serverId].destroy();
+            }
+
+            // Reverse so oldest is first, take last 20 days
+            const reversedData = [...dailyData].reverse().slice(-20);
+
+            // Calculate the balance at each day's end
+            // Start from current balance and work backwards through daily profits
+            const balances = [];
+            let bal = currentBalance;
+            for (let i = reversedData.length - 1; i >= 0; i--) {
+                balances.unshift({ date: reversedData[i].date, balance: bal });
+                bal -= (reversedData[i].abs_profit || 0);
+            }
+
+            const labels = balances.map(b => {
+                const date = new Date(b.date);
+                return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+            });
+            const values = balances.map(b => b.balance);
+
+            balanceCharts[serverId] = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Balance',
+                        data: values,
+                        borderColor: '#58a6ff',
+                        backgroundColor: 'rgba(88, 166, 255, 0.1)',
+                        fill: true,
+                        borderWidth: 2,
+                        pointRadius: 2,
+                        tension: 0.3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    events: [],
+                    interaction: { mode: null },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: { enabled: false }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                color: '#8b949e',
+                                font: { size: 9 },
+                                maxRotation: 0
+                            }
+                        },
+                        y: {
+                            grid: { color: 'rgba(48, 54, 61, 0.3)' },
+                            ticks: {
+                                color: '#8b949e',
+                                font: { size: 9 },
+                                callback: v => v.toFixed(0)
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        let isFirstLoad = true;
+
         async function loadDashboard() {
+            const loadingModal = document.getElementById('loadingModal');
+            const loadingProgress = document.getElementById('loadingProgress');
+
+            // Show loading modal only on first load
+            if (isFirstLoad) {
+                loadingModal.classList.add('show');
+                loadingProgress.textContent = 'Connecting to API...';
+            }
+
             try {
+                if (isFirstLoad) loadingProgress.textContent = 'Fetching server data...';
                 const response = await fetch('api.php');
                 const result = await response.json();
-                
+
                 if (!result.success) {
                     console.error('API error:', result.error);
+                    if (isFirstLoad) {
+                        loadingProgress.textContent = 'Error: ' + (result.error || 'Unknown error');
+                    }
                     return;
                 }
-                
+
+                if (isFirstLoad) loadingProgress.textContent = 'Processing data...';
                 const data = result.data;
                 
                 // Update summary stats
@@ -1328,12 +1361,23 @@
                 // Create charts for each server
                 for (const [serverNum, server] of Object.entries(data.servers)) {
                     if (server.online && server.daily?.data) {
+                        const currentBalance = server.balance?.total || 0;
+                        createBalanceChart(server.server_num, server.daily.data, currentBalance);
                         createChart(server.server_num, server.daily.data);
                     }
                 }
-                    
+
+                // Hide loading modal
+                if (isFirstLoad) {
+                    loadingModal.classList.remove('show');
+                    isFirstLoad = false;
+                }
+
             } catch (error) {
                 console.error('Failed to load dashboard:', error);
+                if (isFirstLoad) {
+                    loadingProgress.textContent = 'Error loading data. Retrying...';
+                }
             }
         }
         
