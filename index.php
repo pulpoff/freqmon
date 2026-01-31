@@ -125,71 +125,72 @@
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            max-width: 500px;
-            width: 90%;
-            max-height: 80vh;
+            max-width: 400px;
+            width: 92%;
+            max-height: 85vh;
             overflow-y: auto;
         }
-        
+
         .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 1rem;
+            padding: 0.6rem 0.8rem;
             border-bottom: 1px solid var(--border-color);
         }
-        
+
         .modal-header h5 {
             margin: 0;
             color: #fff;
+            font-size: 0.9rem;
         }
-        
+
         .modal-close {
             background: none;
             border: none;
             color: var(--text-secondary);
-            font-size: 1.5rem;
+            font-size: 1.3rem;
             cursor: pointer;
             line-height: 1;
         }
-        
+
         .modal-close:hover {
             color: #fff;
         }
-        
+
         .modal-body {
-            padding: 1rem;
+            padding: 0.6rem 0.8rem;
         }
-        
+
         .info-row {
             display: flex;
             justify-content: space-between;
-            padding: 0.4rem 0;
+            padding: 0.25rem 0;
             border-bottom: 1px solid var(--border-color);
-            font-size: 0.8rem;
+            font-size: 0.7rem;
         }
-        
+
         .info-row:last-child {
             border-bottom: none;
         }
-        
+
         .info-label {
             color: var(--text-secondary);
         }
-        
+
         .info-value {
             color: #fff;
             text-align: right;
         }
-        
+
         .info-summary {
             background: var(--bg-tertiary);
-            padding: 0.75rem;
-            border-radius: 6px;
-            margin-bottom: 1rem;
+            padding: 0.5rem;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
             text-align: center;
             color: var(--accent-blue);
-            font-size: 0.85rem;
+            font-size: 0.7rem;
         }
 
         .trade-modal-content {
@@ -200,18 +201,6 @@
             width: 92%;
             max-height: 85vh;
             overflow-y: auto;
-        }
-
-        .trade-modal-content .modal-header {
-            padding: 0.6rem 0.8rem;
-        }
-
-        .trade-modal-content .modal-header h5 {
-            font-size: 0.9rem;
-        }
-
-        .trade-modal-content .modal-body {
-            padding: 0.6rem 0.8rem;
         }
 
         .trade-chart-container {
