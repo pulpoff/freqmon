@@ -94,4 +94,10 @@ class Config
     {
         return $this->getSetting('TIMEZONE', 'UTC');
     }
+
+    public function isSummaryEnabled(): bool
+    {
+        $value = strtoupper($this->getSetting('SUMMARY', 'OFF'));
+        return $value === 'ON' || $value === 'TRUE' || $value === '1';
+    }
 }

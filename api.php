@@ -89,6 +89,9 @@ try {
     echo json_encode([
         'success' => true,
         'timestamp' => date('Y-m-d H:i:s'),
+        'settings' => [
+            'summary_enabled' => $config->isSummaryEnabled(),
+        ],
         'data' => [
             'servers' => $serversData,
             'totals' => $totals,
