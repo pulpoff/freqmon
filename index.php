@@ -1388,25 +1388,33 @@
 
                 if (isFirstLoad) loadingProgress.textContent = 'Processing data...';
                 const data = result.data;
-                
-                // Update summary stats
-                const totals = data.totals;
-                document.getElementById('serversOnline').textContent = 
-                    `${totals.servers_online}/${totals.servers_total}`;
-                
-                const totalProfit = totals.total_profit || 0;
-                const profitEl = document.getElementById('totalProfit');
-                profitEl.textContent = formatProfit(totalProfit);
-                profitEl.className = `stat-value ${getProfitClass(totalProfit)}`;
-                
-                const avgProfit = totals.total_profit_percent || 0;
-                const avgEl = document.getElementById('avgProfit');
-                avgEl.textContent = formatPercent(avgProfit);
-                avgEl.className = `stat-value ${getProfitClass(avgProfit)}`;
-                
-                document.getElementById('closedTrades').textContent = totals.total_trades_closed || 0;
-                document.getElementById('openTrades').textContent = totals.total_open_trades || 0;
-                document.getElementById('winRate').textContent = (totals.win_rate || 0) + '%';
+                const settings = result.settings || {};
+
+                // Show/hide summary stats based on settings
+                const summaryStats = document.getElementById('summaryStats');
+                if (settings.summary_enabled) {
+                    summaryStats.style.display = '';
+                    // Update summary stats
+                    const totals = data.totals;
+                    document.getElementById('serversOnline').textContent =
+                        `${totals.servers_online}/${totals.servers_total}`;
+
+                    const totalProfit = totals.total_profit || 0;
+                    const profitEl = document.getElementById('totalProfit');
+                    profitEl.textContent = formatProfit(totalProfit);
+                    profitEl.className = `stat-value ${getProfitClass(totalProfit)}`;
+
+                    const avgProfit = totals.total_profit_percent || 0;
+                    const avgEl = document.getElementById('avgProfit');
+                    avgEl.textContent = formatPercent(avgProfit);
+                    avgEl.className = `stat-value ${getProfitClass(avgProfit)}`;
+
+                    document.getElementById('closedTrades').textContent = totals.total_trades_closed || 0;
+                    document.getElementById('openTrades').textContent = totals.total_open_trades || 0;
+                    document.getElementById('winRate').textContent = (totals.win_rate || 0) + '%';
+                } else {
+                    summaryStats.style.display = 'none';
+                }
                 
                 // Store server data globally for modal
                 serverData = {};
