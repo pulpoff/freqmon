@@ -704,7 +704,8 @@
             // Check for new closed trades
             if (newSig.closedCount > oldState.closedCount) {
                 changes.hasChanges = true;
-                const closedTrades = newServer.trades?.trades?.filter(t => !t.is_open) || [];
+                const closedTrades = (newServer.trades?.trades?.filter(t => !t.is_open) || [])
+                    .sort((a, b) => new Date(b.close_date) - new Date(a.close_date));
                 const newCount = newSig.closedCount - oldState.closedCount;
                 changes.newClosedTrades = closedTrades.slice(0, newCount);
             }
@@ -1308,9 +1309,12 @@
             const daily = server.daily?.data || [];
             const trades = server.trades?.trades || [];
             const openTrades = server.status || [];
-            
-            // Get last 20 closed trades for this server
-            const closedTrades = trades.filter(t => !t.is_open).slice(0, 20);
+
+            // Get last 20 closed trades for this server (sorted by close_date, newest first)
+            const closedTrades = trades
+                .filter(t => !t.is_open)
+                .sort((a, b) => new Date(b.close_date) - new Date(a.close_date))
+                .slice(0, 20);
             
             const profitValue = profit.profit_closed_coin || 0;
             const profitPercent = profit.profit_closed_percent || 0;
@@ -1437,7 +1441,7 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    ${closedTrades.sort((a, b) => new Date(b.close_date) - new Date(a.close_date)).map(t => {
+                                    ${closedTrades.map(t => {
                                         const rowClass = (t.profit_abs || 0) >= 0 ? 'row-profit' : 'row-loss';
                                         const closeDate = t.close_date ? formatCompactDate(t.close_date) : '-';
                                         const lev = t.leverage && t.leverage > 1 ? parseFloat(t.leverage) : 0;
