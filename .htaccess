@@ -11,7 +11,7 @@
 </IfModule>
 
 # Default index
-DirectoryIndex dashboard.php index.php
+DirectoryIndex index.php
 
 # Security headers
 <IfModule mod_headers.c>

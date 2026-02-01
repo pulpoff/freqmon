@@ -21,27 +21,38 @@ use FreqtradeDashboard\FreqtradeClient;
 try {
     $config = Config::getInstance();
     date_default_timezone_set($config->getTimezone());
-    
+
     // Handle pair_candles request
     if (isset($_GET['action']) && $_GET['action'] === 'pair_candles') {
         ob_clean(); // Clear any previous output
-        
+
         $serverNum = isset($_GET['server']) ? intval($_GET['server']) : 1;
         $pair = isset($_GET['pair']) ? $_GET['pair'] : '';
         $timeframe = isset($_GET['timeframe']) ? $_GET['timeframe'] : '5m';
         $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 100;
-        
-        if (empty($pair)) {
-            echo json_encode(['success' => false, 'error' => 'Pair is required']);
+
+        // Security: Validate pair format (e.g., BTC/USDT, ETH/USDT:USDT)
+        if (empty($pair) || !preg_match('/^[A-Z0-9]{2,10}\/[A-Z0-9]{2,10}(:[A-Z0-9]{2,10})?$/i', $pair)) {
+            echo json_encode(['success' => false, 'error' => 'Invalid pair format']);
             exit;
         }
-        
+
+        // Security: Validate timeframe against allowed values
+        $allowedTimeframes = ['1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '8h', '12h', '1d', '3d', '1w', '1M'];
+        if (!in_array($timeframe, $allowedTimeframes)) {
+            echo json_encode(['success' => false, 'error' => 'Invalid timeframe']);
+            exit;
+        }
+
+        // Security: Limit the limit parameter
+        $limit = max(1, min($limit, 500));
+
         $servers = $config->getServers();
         if (!isset($servers[$serverNum])) {
-            echo json_encode(['success' => false, 'error' => 'Server not found: ' . $serverNum . '. Available: ' . implode(', ', array_keys($servers))]);
+            echo json_encode(['success' => false, 'error' => 'Server not found']);
             exit;
         }
-        
+
         $serverConfig = $servers[$serverNum];
         $client = new FreqtradeClient(
             $serverConfig['host'],
