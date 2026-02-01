@@ -939,7 +939,11 @@
 
             const isOpenTrade = trade._isOpen === true;
             const titleSuffix = isOpenTrade ? ' (Open)' : '';
-            document.getElementById('tradeModalTitle').textContent = `${trade.pair} - ${trade.is_short ? 'Short' : 'Long'}${titleSuffix}`;
+            const arrow = trade.is_short ? '<span style="color:#d29922">↓</span>' : '<span style="color:#58a6ff">↑</span>';
+            const direction = trade.is_short ? 'SHORT' : 'LONG';
+            const lev = trade.leverage && trade.leverage > 1 ? parseFloat(trade.leverage) : 0;
+            const leverage = lev > 1 ? ` x${lev % 1 === 0 ? lev : lev.toFixed(1)}` : '';
+            document.getElementById('tradeModalTitle').innerHTML = `${arrow} ${getCoinName(trade.pair)} ${direction}${leverage}${titleSuffix}`;
             document.getElementById('tradeModalBody').innerHTML = '<div class="trade-loading"><i class="bi bi-hourglass-split"></i> Loading chart...</div>';
             document.getElementById('tradeModal').classList.add('show');
             try {
