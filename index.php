@@ -848,7 +848,12 @@
             const server = serverData[serverNum];
             if (!server) return;
 
-            const openTrades = server.status || [];
+            const openTrades = (server.status || []).slice().sort((a, b) => {
+                // Sort by open_date descending (newest first)
+                const dateA = a.open_date ? new Date(a.open_date) : new Date(0);
+                const dateB = b.open_date ? new Date(b.open_date) : new Date(0);
+                return dateB - dateA;
+            });
             const serverName = server.name || `Server ${serverNum}`;
 
             document.getElementById('openTradesModalTitle').textContent = `Open Trades - ${serverName}`;
