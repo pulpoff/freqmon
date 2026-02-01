@@ -747,9 +747,15 @@
                     const openDate = t.open_date ? formatCompactDate(t.open_date) : '-';
                     const rowClass = profitPct >= 0 ? 'row-profit' : 'row-loss';
 
+                    // Store in tradeCache for chart viewing
+                    const tradeId = 's' + serverNum + '_open_' + (t.trade_id || t.pair.replace(/[^a-zA-Z0-9]/g, '_'));
+                    t._serverNum = serverNum;
+                    t._isOpen = true;
+                    tradeCache[tradeId] = t;
+
                     return `
                         <tr class="${rowClass}">
-                            <td>${arrow} ${getCoinName(t.pair)}${leverage}</td>
+                            <td><span class="pair-badge trade-link" onclick="event.stopPropagation(); closeOpenTradesModal(); showTradeChart('${tradeId}')">${arrow} ${getCoinName(t.pair)}${leverage}</span></td>
                             <td class="text-end ${getProfitClass(profitAbs)}">${formatProfit(profitAbs)}</td>
                             <td class="text-end ${getProfitClass(profitPct)}">${profitPct.toFixed(1)}%</td>
                             <td><small style="color: #8b949e;">${t.current_rate?.toFixed(4) || '-'}</small></td>
@@ -812,8 +818,10 @@
                 console.error('Trade not found:', tradeId);
                 return;
             }
-            
-            document.getElementById('tradeModalTitle').textContent = `${trade.pair} - ${trade.is_short ? 'Short' : 'Long'}`;
+
+            const isOpenTrade = trade._isOpen === true;
+            const titleSuffix = isOpenTrade ? ' (Open)' : '';
+            document.getElementById('tradeModalTitle').textContent = `${trade.pair} - ${trade.is_short ? 'Short' : 'Long'}${titleSuffix}`;
             document.getElementById('tradeModalBody').innerHTML = '<div class="trade-loading"><i class="bi bi-hourglass-split"></i> Loading chart...</div>';
             document.getElementById('tradeModal').classList.add('show');
             try {
@@ -829,9 +837,9 @@
                     }
                     return new Date(str);
                 };
-                
+
                 const openDate = parseDate(trade.open_date);
-                const closeDate = parseDate(trade.close_date);
+                const closeDate = isOpenTrade ? new Date() : parseDate(trade.close_date);
                 const duration = closeDate - openDate;
                 
                 // Determine timeframe based on trade duration
@@ -905,25 +913,51 @@
                 
                 // Verify data roughly matches trade prices (sanity check)
                 const firstPrice = parseFloat(klines[0][4]);
-                const tradePriceAvg = (trade.open_rate + trade.close_rate) / 2;
+                const currentPrice = isOpenTrade ? trade.current_rate : trade.close_rate;
+                const tradePriceAvg = (trade.open_rate + currentPrice) / 2;
                 const priceDiff = Math.abs(firstPrice - tradePriceAvg) / tradePriceAvg;
                 if (priceDiff > 0.1) { // More than 10% difference
                     console.warn('Price mismatch! Chart:', firstPrice, 'Trade:', tradePriceAvg, 'Diff:', (priceDiff * 100).toFixed(1) + '%');
                 }
-                
+
                 labels = klines.map(k => new Date(k[0]));
                 prices = labels.map((t, i) => ({ x: t, y: parseFloat(klines[i][4]) }));
-                
+
                 // Create point markers at actual trade times and prices (using exact coordinates)
                 const entryPoint = [{ x: openDate, y: trade.open_rate }];
-                const exitPoint = [{ x: closeDate, y: trade.close_rate }];
-                
+                const exitPoint = isOpenTrade ? [] : [{ x: closeDate, y: trade.close_rate }];
+
                 const profitColor = (trade.profit_abs || 0) >= 0 ? '#3fb950' : '#f85149';
 
-                document.getElementById('tradeModalBody').innerHTML = `
-                    <div class="trade-chart-container">
-                        <canvas id="tradeChartCanvas"></canvas>
+                // Different details for open vs closed trades
+                const detailsHtml = isOpenTrade ? `
+                    <div class="trade-details">
+                        <div class="trade-detail">
+                            <div class="trade-detail-label">Entry Time</div>
+                            <div class="trade-detail-value">${formatDateTime(openDate)}</div>
+                        </div>
+                        <div class="trade-detail">
+                            <div class="trade-detail-label">Duration</div>
+                            <div class="trade-detail-value">${Math.round(duration / 60000)} min</div>
+                        </div>
+                        <div class="trade-detail">
+                            <div class="trade-detail-label">Entry Price</div>
+                            <div class="trade-detail-value">${trade.open_rate?.toFixed(6) || 'N/A'}</div>
+                        </div>
+                        <div class="trade-detail">
+                            <div class="trade-detail-label">Current Price</div>
+                            <div class="trade-detail-value">${trade.current_rate?.toFixed(6) || 'N/A'}</div>
+                        </div>
+                        <div class="trade-detail">
+                            <div class="trade-detail-label">Unrealized P/L</div>
+                            <div class="trade-detail-value" style="color: ${profitColor}">${formatProfit(trade.profit_abs)} (${(trade.profit_pct || 0).toFixed(2)}%)</div>
+                        </div>
+                        <div class="trade-detail">
+                            <div class="trade-detail-label">Stake</div>
+                            <div class="trade-detail-value">${trade.stake_amount?.toFixed(2) || 'N/A'}</div>
+                        </div>
                     </div>
+                ` : `
                     <div class="trade-details">
                         <div class="trade-detail">
                             <div class="trade-detail-label">Entry Time</div>
@@ -959,41 +993,54 @@
                         </div>
                     </div>
                 `;
-                
+
+                document.getElementById('tradeModalBody').innerHTML = `
+                    <div class="trade-chart-container">
+                        <canvas id="tradeChartCanvas"></canvas>
+                    </div>
+                    ${detailsHtml}
+                `;
+
+                // Build datasets - only include exit point for closed trades
+                const datasets = [
+                    {
+                        label: 'Price',
+                        data: prices,
+                        borderColor: '#8b949e',
+                        backgroundColor: 'transparent',
+                        borderWidth: 1.5,
+                        pointRadius: 0,
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Entry',
+                        data: entryPoint,
+                        borderColor: '#3fb950',
+                        backgroundColor: '#3fb950',
+                        pointRadius: 8,
+                        pointStyle: 'circle',
+                        showLine: false
+                    }
+                ];
+
+                if (!isOpenTrade) {
+                    datasets.push({
+                        label: 'Exit',
+                        data: exitPoint,
+                        borderColor: '#f85149',
+                        backgroundColor: '#f85149',
+                        pointRadius: 8,
+                        pointStyle: 'circle',
+                        showLine: false
+                    });
+                }
+
                 const ctx = document.getElementById('tradeChartCanvas');
                 tradeChart = new Chart(ctx, {
                     type: 'line',
                     data: {
                         labels: labels,
-                        datasets: [
-                            {
-                                label: 'Price',
-                                data: prices,
-                                borderColor: '#8b949e',
-                                backgroundColor: 'transparent',
-                                borderWidth: 1.5,
-                                pointRadius: 0,
-                                tension: 0.1
-                            },
-                            {
-                                label: 'Entry',
-                                data: entryPoint,
-                                borderColor: '#3fb950',
-                                backgroundColor: '#3fb950',
-                                pointRadius: 10,
-                                pointStyle: 'circle',
-                                showLine: false
-                            },
-                            {
-                                label: 'Exit',
-                                data: exitPoint,
-                                borderColor: '#f85149',
-                                backgroundColor: '#f85149',
-                                pointRadius: 10,
-                                pointStyle: 'circle',
-                                showLine: false
-                            }
-                        ]
+                        datasets: datasets
                     },
                     options: {
                         responsive: true,
