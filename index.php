@@ -1610,11 +1610,19 @@
                             }
                         },
                         y: {
+                            position: 'left',
                             grid: { color: 'rgba(48, 54, 61, 0.3)' },
                             ticks: {
                                 color: '#8b949e',
                                 font: { size: 9 },
                                 callback: v => v.toFixed(0)
+                            }
+                        },
+                        y1: {
+                            position: 'right',
+                            grid: { display: false },
+                            ticks: {
+                                display: false
                             }
                         }
                     }
