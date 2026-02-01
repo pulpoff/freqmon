@@ -1476,25 +1476,40 @@
         function createChart(serverId, dailyData) {
             const ctx = document.getElementById(`chart-${serverId}`);
             if (!ctx) return;
-            
+
             // Destroy existing chart
             if (charts[serverId]) {
                 charts[serverId].destroy();
             }
-            
+
             // Reverse data so oldest is on left, newest on right
             const reversedData = [...dailyData].reverse();
-            
+
             const labels = reversedData.map(d => {
                 const date = new Date(d.date);
                 return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
             });
-            
+
             const profits = reversedData.map(d => d.abs_profit || 0);
             const trades = reversedData.map(d => d.trade_count || 0);
-            
+
             const colors = profits.map(p => p >= 0 ? 'rgba(63, 185, 80, 0.7)' : 'rgba(248, 81, 73, 0.7)');
-            
+
+            // Calculate axis alignment so zeros line up
+            const profitMin = Math.min(0, ...profits);
+            const profitMax = Math.max(0, ...profits);
+            const tradeMax = Math.max(1, ...trades);
+
+            // Calculate y1 min to align zeros: if profit goes negative,
+            // we need to extend trade axis into negative to keep zeros aligned
+            let y1Min = 0;
+            if (profitMin < 0) {
+                // Calculate ratio: how much of the profit range is below zero
+                const negativeRatio = Math.abs(profitMin) / (profitMax - profitMin);
+                // Apply same ratio to trade axis
+                y1Min = -tradeMax * negativeRatio / (1 - negativeRatio);
+            }
+
             charts[serverId] = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -1554,11 +1569,13 @@
                         },
                         y1: {
                             position: 'right',
+                            min: y1Min,
                             grid: { display: false },
                             ticks: {
                                 color: '#58a6ff',
                                 font: { size: 9 },
-                                stepSize: 1
+                                stepSize: 1,
+                                callback: v => v >= 0 ? Math.round(v) : ''  // Only show positive values
                             },
                             afterFit: (axis) => { axis.width = 20; }
                         }
