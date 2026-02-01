@@ -860,15 +860,6 @@
             document.getElementById('tradeModalTitle').textContent = `${trade.pair} - ${trade.is_short ? 'Short' : 'Long'}`;
             document.getElementById('tradeModalBody').innerHTML = '<div class="trade-loading"><i class="bi bi-hourglass-split"></i> Loading chart...</div>';
             document.getElementById('tradeModal').classList.add('show');
-            
-            // Format dates for display (using original strings for display)
-            const formatDateTime = (d) => {
-                return d.toLocaleString('en-GB', { 
-                    day: '2-digit', month: '2-digit', year: 'numeric',
-                    hour: '2-digit', minute: '2-digit', second: '2-digit'
-                });
-            };
-            
             try {
                 // Parse dates - ensure consistent timezone handling
                 // FreqTrade typically returns dates in UTC, but format might vary
@@ -1148,6 +1139,17 @@
             const hrs = d.getHours().toString().padStart(2, '0');
             const min = d.getMinutes().toString().padStart(2, '0');
             return `${day}.${mon} ${hrs}:${min}`;
+        }
+
+        function formatDateTime(d) {
+            if (!d || !(d instanceof Date) || isNaN(d)) return '-';
+            const year = d.getFullYear();
+            const mon = (d.getMonth() + 1).toString().padStart(2, '0');
+            const day = d.getDate().toString().padStart(2, '0');
+            const hrs = d.getHours().toString().padStart(2, '0');
+            const min = d.getMinutes().toString().padStart(2, '0');
+            const sec = d.getSeconds().toString().padStart(2, '0');
+            return `${year}-${mon}-${day} ${hrs}:${min}:${sec}`;
         }
         
         function getCoinName(pair) {
