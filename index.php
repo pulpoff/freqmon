@@ -557,47 +557,10 @@
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            max-width: 700px;
-            width: 95%;
+            max-width: 400px;
+            width: 92%;
             max-height: 85vh;
             overflow-y: auto;
-        }
-        .open-trades-table {
-            width: 100%;
-            font-size: 0.7rem;
-        }
-        .open-trades-table th {
-            color: var(--text-secondary);
-            font-weight: 500;
-            text-transform: uppercase;
-            font-size: 0.6rem;
-            padding: 0.4rem 0.3rem;
-            border-bottom: 1px solid var(--border-color);
-        }
-        .open-trades-table td {
-            padding: 0.4rem 0.3rem;
-            border-bottom: 1px solid var(--border-color);
-            vertical-align: middle;
-        }
-        .open-trades-table tr:last-child td {
-            border-bottom: none;
-        }
-        .trade-id-cell {
-            color: var(--text-secondary);
-        }
-        .trade-type-short {
-            color: var(--accent-red);
-        }
-        .trade-type-long {
-            color: var(--accent-green);
-        }
-        .profit-cell {
-            display: flex;
-            align-items: center;
-            gap: 0.3rem;
-        }
-        .profit-arrow {
-            font-size: 0.8rem;
         }
     </style>
 
@@ -776,49 +739,42 @@
                 document.getElementById('openTradesModalBody').innerHTML = '<div class="no-data">No open trades</div>';
             } else {
                 const rows = openTrades.map(t => {
-                    const tradeType = t.is_short ? 'Short' : 'Long';
-                    const typeClass = t.is_short ? 'trade-type-short' : 'trade-type-long';
-                    const lev = t.leverage && t.leverage > 1 ? parseFloat(t.leverage) : 1;
-                    const leverage = lev > 1 ? ` (${lev % 1 === 0 ? lev : lev.toFixed(1)}x)` : ' (1x)';
+                    const arrow = t.is_short ? '<span style="font-size:1.3em;color:#d29922">↓</span>' : '<span style="font-size:1.3em;color:#58a6ff">↑</span>';
+                    const lev = t.leverage && t.leverage > 1 ? parseFloat(t.leverage) : 0;
+                    const leverage = lev > 1 ? ` x${lev % 1 === 0 ? lev : lev.toFixed(1)}` : '';
                     const profitPct = t.profit_pct || 0;
                     const profitAbs = t.profit_abs || 0;
-                    const profitClass = profitPct >= 0 ? 'text-success' : 'text-danger';
-                    const arrow = profitPct >= 0 ? '▲' : '▼';
-                    const arrowClass = profitPct >= 0 ? 'text-success' : 'text-danger';
-                    const openDate = t.open_date ? formatDateTime(new Date(t.open_date)) : '-';
+                    const openDate = t.open_date ? formatCompactDate(t.open_date) : '-';
+                    const rowClass = profitPct >= 0 ? 'row-profit' : 'row-loss';
 
                     return `
-                        <tr>
-                            <td class="trade-id-cell">${t.trade_id || '-'} | <span class="${typeClass}">${tradeType}</span></td>
-                            <td>${escapeHtml(t.pair || '-')}</td>
-                            <td>${t.amount?.toFixed(2) || '-'}</td>
-                            <td>${t.stake_amount?.toFixed(3) || '-'}${leverage}</td>
-                            <td>${t.open_rate?.toFixed(4) || '-'}</td>
-                            <td>${t.current_rate?.toFixed(4) || '-'}</td>
-                            <td><div class="profit-cell"><span class="profit-arrow ${arrowClass}">${arrow}</span><span class="${profitClass}">${profitPct.toFixed(2)}% (${profitAbs >= 0 ? '+' : ''}${profitAbs.toFixed(3)})</span></div></td>
-                            <td>${openDate}</td>
+                        <tr class="${rowClass}">
+                            <td>${arrow} ${getCoinName(t.pair)}${leverage}</td>
+                            <td class="text-end ${getProfitClass(profitAbs)}">${formatProfit(profitAbs)}</td>
+                            <td class="text-end ${getProfitClass(profitPct)}">${profitPct.toFixed(1)}%</td>
+                            <td><small style="color: #8b949e;">${t.current_rate?.toFixed(4) || '-'}</small></td>
+                            <td><small style="color: #8b949e;">${openDate}</small></td>
                         </tr>
                     `;
                 }).join('');
 
                 document.getElementById('openTradesModalBody').innerHTML = `
-                    <table class="open-trades-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Pair</th>
-                                <th>Amount</th>
-                                <th>Stake amount</th>
-                                <th>Open rate</th>
-                                <th>Current rate</th>
-                                <th>Current profit %</th>
-                                <th>Open date</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${rows}
-                        </tbody>
-                    </table>
+                    <div class="trades-scroll">
+                        <table class="table table-dark mini-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Pair</th>
+                                    <th class="text-end">Profit</th>
+                                    <th class="text-end">%</th>
+                                    <th>Rate</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${rows}
+                            </tbody>
+                        </table>
+                    </div>
                 `;
             }
 
