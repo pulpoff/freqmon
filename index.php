@@ -377,6 +377,12 @@
             font-size: 0.6rem;
             padding: 0.1rem 0.35rem;
             border-radius: 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .open-trades-count:hover {
+            background: #4da3ff;
         }
         
         .no-data {
@@ -533,6 +539,67 @@
             <div class="loading-progress" id="loadingProgress"></div>
         </div>
     </div>
+
+    <!-- Open Trades Modal -->
+    <div class="modal-overlay" id="openTradesModal" onclick="closeOpenTradesModal(event)">
+        <div class="open-trades-modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h5 id="openTradesModalTitle">Open Trades</h5>
+                <button class="modal-close" onclick="closeOpenTradesModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="openTradesModalBody">
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .open-trades-modal-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            max-width: 700px;
+            width: 95%;
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+        .open-trades-table {
+            width: 100%;
+            font-size: 0.7rem;
+        }
+        .open-trades-table th {
+            color: var(--text-secondary);
+            font-weight: 500;
+            text-transform: uppercase;
+            font-size: 0.6rem;
+            padding: 0.4rem 0.3rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .open-trades-table td {
+            padding: 0.4rem 0.3rem;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: middle;
+        }
+        .open-trades-table tr:last-child td {
+            border-bottom: none;
+        }
+        .trade-id-cell {
+            color: var(--text-secondary);
+        }
+        .trade-type-short {
+            color: var(--accent-red);
+        }
+        .trade-type-long {
+            color: var(--accent-green);
+        }
+        .profit-cell {
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .profit-arrow {
+            font-size: 0.8rem;
+        }
+    </style>
 
     <style>
         .loading-modal-content {
@@ -694,12 +761,81 @@
             if (event && event.target !== event.currentTarget) return;
             document.getElementById('strategyModal').classList.remove('show');
         }
-        
+
+        function showOpenTrades(serverNum, event) {
+            event.stopPropagation();
+            const server = serverData[serverNum];
+            if (!server) return;
+
+            const openTrades = server.status || [];
+            const serverName = server.name || `Server ${serverNum}`;
+
+            document.getElementById('openTradesModalTitle').textContent = `Open Trades - ${serverName}`;
+
+            if (openTrades.length === 0) {
+                document.getElementById('openTradesModalBody').innerHTML = '<div class="no-data">No open trades</div>';
+            } else {
+                const rows = openTrades.map(t => {
+                    const tradeType = t.is_short ? 'Short' : 'Long';
+                    const typeClass = t.is_short ? 'trade-type-short' : 'trade-type-long';
+                    const lev = t.leverage && t.leverage > 1 ? parseFloat(t.leverage) : 1;
+                    const leverage = lev > 1 ? ` (${lev % 1 === 0 ? lev : lev.toFixed(1)}x)` : ' (1x)';
+                    const profitPct = t.profit_pct || 0;
+                    const profitAbs = t.profit_abs || 0;
+                    const profitClass = profitPct >= 0 ? 'text-success' : 'text-danger';
+                    const arrow = profitPct >= 0 ? '▲' : '▼';
+                    const arrowClass = profitPct >= 0 ? 'text-success' : 'text-danger';
+                    const openDate = t.open_date ? formatDateTime(new Date(t.open_date)) : '-';
+
+                    return `
+                        <tr>
+                            <td class="trade-id-cell">${t.trade_id || '-'} | <span class="${typeClass}">${tradeType}</span></td>
+                            <td>${escapeHtml(t.pair || '-')}</td>
+                            <td>${t.amount?.toFixed(2) || '-'}</td>
+                            <td>${t.stake_amount?.toFixed(3) || '-'}${leverage}</td>
+                            <td>${t.open_rate?.toFixed(4) || '-'}</td>
+                            <td>${t.current_rate?.toFixed(4) || '-'}</td>
+                            <td><div class="profit-cell"><span class="profit-arrow ${arrowClass}">${arrow}</span><span class="${profitClass}">${profitPct.toFixed(2)}% (${profitAbs >= 0 ? '+' : ''}${profitAbs.toFixed(3)})</span></div></td>
+                            <td>${openDate}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                document.getElementById('openTradesModalBody').innerHTML = `
+                    <table class="open-trades-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Pair</th>
+                                <th>Amount</th>
+                                <th>Stake amount</th>
+                                <th>Open rate</th>
+                                <th>Current rate</th>
+                                <th>Current profit %</th>
+                                <th>Open date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rows}
+                        </tbody>
+                    </table>
+                `;
+            }
+
+            document.getElementById('openTradesModal').classList.add('show');
+        }
+
+        function closeOpenTradesModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('openTradesModal').classList.remove('show');
+        }
+
         // Close modal on ESC key
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeModal();
                 closeTradeModal();
+                closeOpenTradesModal();
             }
         });
         
@@ -1098,7 +1234,7 @@
                                 ${isOnline ? `<div class="strategy-name"><i class="bi bi-cpu me-1"></i>${escapeHtml(strategy)}${daysText ? ` <span class="days-badge">${daysText}</span>` : ''} <span class="info-btn" onclick="showStrategyInfo(${server.server_num}, event)"><i class="bi bi-info-circle"></i></span></div>` : ''}
                             </div>
                             <div class="d-flex align-items-center gap-2">
-                                ${openTrades.length > 0 ? `<span class="open-trades-count">${openTrades.length} open</span>` : ''}
+                                ${openTrades.length > 0 ? `<span class="open-trades-count" onclick="showOpenTrades(${server.server_num}, event)">${openTrades.length} open</span>` : ''}
                                 ${!isOnline ? `<span class="badge badge-offline"><i class="bi bi-x-circle me-1"></i>Offline</span>` : 
                                     (config.dry_run === false ? `<span class="badge badge-live"><i class="bi bi-lightning-charge me-1"></i>Live</span>` : '')}
                             </div>
