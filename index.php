@@ -458,6 +458,9 @@
     </style>
 </head>
 <body>
+    <!-- Notification Container -->
+    <div id="notificationContainer" class="notification-container"></div>
+
     <div class="container-fluid px-4 py-3">
         <!-- Summary Stats -->
         <div class="row g-3 mb-4" id="summaryStats">
@@ -601,6 +604,119 @@
         const REFRESH_SECONDS = 60;
         let serverData = {}; // Store server data globally for modal
         const tradeCache = {}; // Store trade data for chart modal
+        let previousServerState = {}; // Store previous state for comparison
+
+        // Chime sound using Web Audio API
+        let audioContext = null;
+        function playChime() {
+            try {
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+
+                oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A5 note
+                oscillator.type = 'sine';
+
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.5);
+            } catch (e) {
+                console.log('Audio not available:', e);
+            }
+        }
+
+        // Show notification
+        function showNotification(title, message, type = 'profit') {
+            const container = document.getElementById('notificationContainer');
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+
+            let icon = 'bi-check-circle-fill';
+            if (type === 'loss') icon = 'bi-dash-circle-fill';
+            else if (type === 'open') icon = 'bi-arrow-up-circle-fill';
+
+            notification.innerHTML = `
+                <i class="bi ${icon} notification-icon ${type}"></i>
+                <div class="notification-content">
+                    <div class="notification-title">${escapeHtml(title)}</div>
+                    <div class="notification-message">${message}</div>
+                </div>
+            `;
+
+            container.appendChild(notification);
+            playChime();
+
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                notification.classList.add('hiding');
+                setTimeout(() => notification.remove(), 300);
+            }, 5000);
+        }
+
+        // Generate a hash/signature for server data to detect changes
+        function getServerSignature(server) {
+            const closedTrades = server.trades?.trades?.filter(t => !t.is_open) || [];
+            const openTrades = server.status || [];
+            return {
+                closedCount: closedTrades.length,
+                openCount: openTrades.length,
+                lastClosedId: closedTrades.length > 0 ? closedTrades[0].trade_id : null,
+                lastOpenIds: openTrades.map(t => t.trade_id).sort().join(','),
+                balance: server.balance?.total || 0,
+                profitClosed: server.profit?.profit_closed_coin || 0
+            };
+        }
+
+        // Check for data changes and detect new trades
+        function detectChanges(serverNum, newServer, oldState) {
+            const changes = {
+                hasChanges: false,
+                newClosedTrades: [],
+                newOpenTrades: []
+            };
+
+            if (!oldState) {
+                changes.hasChanges = true;
+                return changes;
+            }
+
+            const newSig = getServerSignature(newServer);
+
+            // Check for new closed trades
+            if (newSig.closedCount > oldState.closedCount) {
+                changes.hasChanges = true;
+                const closedTrades = newServer.trades?.trades?.filter(t => !t.is_open) || [];
+                const newCount = newSig.closedCount - oldState.closedCount;
+                changes.newClosedTrades = closedTrades.slice(0, newCount);
+            }
+
+            // Check for new open trades
+            if (newSig.lastOpenIds !== oldState.lastOpenIds) {
+                changes.hasChanges = true;
+                const newOpenIds = new Set(newSig.lastOpenIds.split(',').filter(id => id));
+                const oldOpenIds = new Set((oldState.lastOpenIds || '').split(',').filter(id => id));
+                const openTrades = newServer.status || [];
+
+                changes.newOpenTrades = openTrades.filter(t =>
+                    t.trade_id && !oldOpenIds.has(String(t.trade_id))
+                );
+            }
+
+            // Check for balance/profit changes
+            if (Math.abs(newSig.balance - oldState.balance) > 0.01 ||
+                Math.abs(newSig.profitClosed - oldState.profitClosed) > 0.01) {
+                changes.hasChanges = true;
+            }
+
+            return changes;
+        }
 
         function toggleTransactions(serverNum, toggleElement) {
             const container = document.getElementById(`transactions-${serverNum}`);
@@ -1230,7 +1346,7 @@
             }
             
             return `
-            <div class="col-12 col-md-6 col-xl-3">
+            <div class="col-12 col-md-6 col-xl-3" id="server-card-${server.server_num}">
                 <div class="card server-card">
                     <div class="card-body p-2">
                         <div class="server-header">
@@ -1558,29 +1674,101 @@
                 } else {
                     summaryStats.style.display = 'none';
                 }
-                
+
+                const container = document.getElementById('serverCards');
+                const serversToUpdate = [];
+                const newServerState = {};
+
+                // Check each server for changes
+                for (const [serverNum, server] of Object.entries(data.servers)) {
+                    const sNum = server.server_num;
+                    const oldState = previousServerState[sNum];
+                    const changes = detectChanges(sNum, server, oldState);
+
+                    // Store new state signature
+                    newServerState[sNum] = getServerSignature(server);
+
+                    // Show notifications for new trades (only after first load)
+                    if (!isFirstLoad && server.online) {
+                        const serverName = server.name || `Server ${sNum}`;
+                        const strategy = server.config?.strategy || 'Unknown';
+
+                        // Notify for new closed trades
+                        for (const trade of changes.newClosedTrades) {
+                            const coin = getCoinName(trade.pair);
+                            const profit = trade.profit_abs || 0;
+                            const pct = (trade.profit_pct || 0).toFixed(1);
+                            const type = profit >= 0 ? 'profit' : 'loss';
+                            const profitClass = profit >= 0 ? 'text-success' : 'text-danger';
+                            showNotification(
+                                `${serverName} - ${strategy}`,
+                                `Closed <strong>${coin}</strong> ${trade.is_short ? 'SHORT' : 'LONG'}: <span class="notification-profit ${profitClass}">${formatProfit(profit)} (${pct}%)</span>`,
+                                type
+                            );
+                        }
+
+                        // Notify for new open trades
+                        for (const trade of changes.newOpenTrades) {
+                            const coin = getCoinName(trade.pair);
+                            showNotification(
+                                `${serverName} - ${strategy}`,
+                                `Opened <strong>${coin}</strong> ${trade.is_short ? 'SHORT' : 'LONG'}`,
+                                'open'
+                            );
+                        }
+                    }
+
+                    if (changes.hasChanges) {
+                        serversToUpdate.push(server);
+                    }
+                }
+
+                // Update previous state
+                previousServerState = newServerState;
+
                 // Store server data globally for modal
                 serverData = {};
                 for (const [serverNum, server] of Object.entries(data.servers)) {
                     serverData[server.server_num] = server;
                 }
-                
-                // Update server cards
-                const container = document.getElementById('serverCards');
-                container.innerHTML = '';
-                
-                for (const [serverNum, server] of Object.entries(data.servers)) {
-                    container.innerHTML += createServerCard(server);
-                }
-                
-                // Create charts for each server
-                for (const [serverNum, server] of Object.entries(data.servers)) {
-                    if (server.online && server.daily?.data) {
-                        const currentBalance = server.balance?.total || 0;
-                        createBalanceChart(server.server_num, server.daily.data, currentBalance);
-                        createChart(server.server_num, server.daily.data);
+
+                // On first load or if all servers need updating, rebuild everything
+                if (isFirstLoad || serversToUpdate.length === Object.keys(data.servers).length) {
+                    container.innerHTML = '';
+                    for (const [serverNum, server] of Object.entries(data.servers)) {
+                        container.innerHTML += createServerCard(server);
+                    }
+                    // Create charts for each server
+                    for (const [serverNum, server] of Object.entries(data.servers)) {
+                        if (server.online && server.daily?.data) {
+                            const currentBalance = server.balance?.total || 0;
+                            createBalanceChart(server.server_num, server.daily.data, currentBalance);
+                            createChart(server.server_num, server.daily.data);
+                        }
+                    }
+                } else if (serversToUpdate.length > 0) {
+                    // Only update changed cards
+                    for (const server of serversToUpdate) {
+                        const cardWrapper = document.getElementById(`server-card-${server.server_num}`);
+                        if (cardWrapper) {
+                            // Create temporary container to parse new HTML
+                            const temp = document.createElement('div');
+                            temp.innerHTML = createServerCard(server);
+                            const newCard = temp.firstElementChild;
+
+                            // Replace the card
+                            cardWrapper.replaceWith(newCard);
+
+                            // Recreate charts for this server
+                            if (server.online && server.daily?.data) {
+                                const currentBalance = server.balance?.total || 0;
+                                createBalanceChart(server.server_num, server.daily.data, currentBalance);
+                                createChart(server.server_num, server.daily.data);
+                            }
+                        }
                     }
                 }
+                // If no changes, do nothing (no refresh)
 
                 // Hide loading modal
                 if (isFirstLoad) {
@@ -1620,6 +1808,92 @@
         }
         .site-footer a:hover {
             color: var(--accent-blue);
+        }
+
+        /* Notification styles */
+        .notification-container {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            max-width: 350px;
+        }
+
+        .notification {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 16px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+            animation: slideIn 0.3s ease-out;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .notification.hiding {
+            animation: slideOut 0.3s ease-in forwards;
+        }
+
+        .notification-icon {
+            font-size: 1.2rem;
+        }
+
+        .notification-icon.profit {
+            color: var(--accent-green);
+        }
+
+        .notification-icon.loss {
+            color: var(--accent-red);
+        }
+
+        .notification-icon.open {
+            color: var(--accent-blue);
+        }
+
+        .notification-content {
+            flex: 1;
+        }
+
+        .notification-title {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-bottom: 2px;
+        }
+
+        .notification-message {
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .notification-profit {
+            font-weight: 600;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
         }
     </style>
 </body>
