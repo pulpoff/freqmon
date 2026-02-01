@@ -1590,7 +1590,7 @@
 
         const balanceCharts = {};
 
-        function createBalanceChart(serverId, dailyData, currentBalance) {
+        function createBalanceChart(serverId, trades, currentBalance) {
             const ctx = document.getElementById(`balance-chart-${serverId}`);
             if (!ctx) return;
 
@@ -1599,23 +1599,93 @@
                 balanceCharts[serverId].destroy();
             }
 
-            // Reverse so oldest is first, take last 20 days
-            const reversedData = [...dailyData].reverse().slice(-20);
+            // Get closed trades sorted by close_date ascending (oldest first)
+            const closedTrades = (trades || [])
+                .filter(t => !t.is_open && t.close_date)
+                .sort((a, b) => new Date(a.close_date) - new Date(b.close_date));
 
-            // Calculate the balance at each day's end
-            // Start from current balance and work backwards through daily profits
-            const balances = [];
-            let bal = currentBalance;
-            for (let i = reversedData.length - 1; i >= 0; i--) {
-                balances.unshift({ date: reversedData[i].date, balance: bal });
-                bal -= (reversedData[i].abs_profit || 0);
+            if (closedTrades.length === 0) {
+                // No trades, show flat line at current balance
+                balanceCharts[serverId] = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: ['Now'],
+                        datasets: [{
+                            label: 'Balance',
+                            data: [currentBalance],
+                            borderColor: '#58a6ff',
+                            backgroundColor: 'rgba(88, 166, 255, 0.1)',
+                            fill: true,
+                            borderWidth: 2,
+                            pointRadius: 2
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        events: [],
+                        plugins: { legend: { display: false }, tooltip: { enabled: false } }
+                    }
+                });
+                return;
             }
 
-            const labels = balances.map(b => {
-                const date = new Date(b.date);
-                return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+            // Create 2-hour time slots for the last 10 days
+            const now = new Date();
+            const startDate = new Date(now);
+            startDate.setDate(startDate.getDate() - 10);
+            startDate.setHours(Math.floor(startDate.getHours() / 2) * 2, 0, 0, 0);
+
+            // Generate all 2-hour slots
+            const slots = [];
+            const slotTime = new Date(startDate);
+            while (slotTime <= now) {
+                slots.push(new Date(slotTime));
+                slotTime.setHours(slotTime.getHours() + 2);
+            }
+
+            // Calculate starting balance by subtracting all trade profits from current balance
+            const tradesInRange = closedTrades.filter(t => new Date(t.close_date) >= startDate);
+            const totalProfitInRange = tradesInRange.reduce((sum, t) => sum + (t.profit_abs || 0), 0);
+            let runningBalance = currentBalance - totalProfitInRange;
+
+            // Calculate balance at each slot
+            const balanceData = [];
+            let tradeIdx = 0;
+
+            // Find first trade in range
+            while (tradeIdx < closedTrades.length && new Date(closedTrades[tradeIdx].close_date) < startDate) {
+                tradeIdx++;
+            }
+
+            for (const slot of slots) {
+                const slotEnd = new Date(slot);
+                slotEnd.setHours(slotEnd.getHours() + 2);
+
+                // Add profits from trades closed in this slot
+                while (tradeIdx < closedTrades.length) {
+                    const tradeDate = new Date(closedTrades[tradeIdx].close_date);
+                    if (tradeDate < slotEnd) {
+                        runningBalance += (closedTrades[tradeIdx].profit_abs || 0);
+                        tradeIdx++;
+                    } else {
+                        break;
+                    }
+                }
+
+                balanceData.push({ date: slot, balance: runningBalance });
+            }
+
+            // Create labels - show date for first slot of each day, empty otherwise
+            const labels = balanceData.map((b, i) => {
+                const d = b.date;
+                const h = d.getHours();
+                if (h === 0 || i === 0) {
+                    return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+                }
+                return '';
             });
-            const values = balances.map(b => b.balance);
+            const values = balanceData.map(b => b.balance);
 
             balanceCharts[serverId] = new Chart(ctx, {
                 type: 'line',
@@ -1628,8 +1698,8 @@
                         backgroundColor: 'rgba(88, 166, 255, 0.1)',
                         fill: true,
                         borderWidth: 2,
-                        pointRadius: 2,
-                        tension: 0.3
+                        pointRadius: 0,
+                        tension: 0.1
                     }]
                 },
                 options: {
@@ -1647,7 +1717,9 @@
                             ticks: {
                                 color: '#8b949e',
                                 font: { size: 9 },
-                                maxRotation: 0
+                                maxRotation: 0,
+                                autoSkip: true,
+                                maxTicksLimit: 10
                             }
                         },
                         y: {
@@ -1798,7 +1870,7 @@
                     for (const [serverNum, server] of Object.entries(data.servers)) {
                         if (server.online && server.daily?.data) {
                             const currentBalance = server.balance?.total || 0;
-                            createBalanceChart(server.server_num, server.daily.data, currentBalance);
+                            createBalanceChart(server.server_num, server.trades?.trades || [], currentBalance);
                             createChart(server.server_num, server.daily.data);
                         }
                     }
@@ -1818,7 +1890,7 @@
                             // Recreate charts for this server
                             if (server.online && server.daily?.data) {
                                 const currentBalance = server.balance?.total || 0;
-                                createBalanceChart(server.server_num, server.daily.data, currentBalance);
+                                createBalanceChart(server.server_num, server.trades?.trades || [], currentBalance);
                                 createChart(server.server_num, server.daily.data);
                             }
                         }
