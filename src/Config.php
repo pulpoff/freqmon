@@ -100,4 +100,10 @@ class Config
         $value = strtoupper($this->getSetting('SUMMARY', 'OFF'));
         return $value === 'ON' || $value === 'TRUE' || $value === '1';
     }
+
+    public function isSoundEnabled(): bool
+    {
+        $value = strtoupper($this->getSetting('SOUND', 'ON'));
+        return $value === 'ON' || $value === 'TRUE' || $value === '1';
+    }
 }
