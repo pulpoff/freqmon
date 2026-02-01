@@ -605,10 +605,12 @@
         let serverData = {}; // Store server data globally for modal
         const tradeCache = {}; // Store trade data for chart modal
         let previousServerState = {}; // Store previous state for comparison
+        let soundEnabled = true; // Default to on, updated from settings
 
         // Chime sound using Web Audio API
         let audioContext = null;
         function playChime() {
+            if (!soundEnabled) return;
             try {
                 if (!audioContext) {
                     audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -1648,6 +1650,9 @@
                 if (isFirstLoad) loadingProgress.textContent = 'Processing data...';
                 const data = result.data;
                 const settings = result.settings || {};
+
+                // Update sound setting
+                soundEnabled = settings.sound_enabled !== false;
 
                 // Show/hide summary stats based on settings
                 const summaryStats = document.getElementById('summaryStats');

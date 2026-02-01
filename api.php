@@ -91,6 +91,7 @@ try {
         'timestamp' => date('Y-m-d H:i:s'),
         'settings' => [
             'summary_enabled' => $config->isSummaryEnabled(),
+            'sound_enabled' => $config->isSoundEnabled(),
         ],
         'data' => [
             'servers' => $serversData,
