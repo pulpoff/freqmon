@@ -1518,7 +1518,7 @@
                     scales: {
                         x: {
                             grid: { display: false },
-                            ticks: { 
+                            ticks: {
                                 color: '#8b949e',
                                 font: { size: 9 },
                                 maxRotation: 0
@@ -1527,20 +1527,22 @@
                         y: {
                             position: 'left',
                             grid: { color: 'rgba(48, 54, 61, 0.3)' },
-                            ticks: { 
+                            ticks: {
                                 color: '#8b949e',
                                 font: { size: 9 },
                                 callback: v => v.toFixed(1)
-                            }
+                            },
+                            afterFit: (axis) => { axis.width = 45; }
                         },
                         y1: {
                             position: 'right',
                             grid: { display: false },
-                            ticks: { 
+                            ticks: {
                                 color: '#58a6ff',
                                 font: { size: 9 },
                                 stepSize: 1
-                            }
+                            },
+                            afterFit: (axis) => { axis.width = 20; }
                         }
                     }
                 }
@@ -1616,14 +1618,16 @@
                                 color: '#8b949e',
                                 font: { size: 9 },
                                 callback: v => v.toFixed(0)
-                            }
+                            },
+                            afterFit: (axis) => { axis.width = 45; }
                         },
                         y1: {
                             position: 'right',
                             grid: { display: false },
                             ticks: {
                                 display: false
-                            }
+                            },
+                            afterFit: (axis) => { axis.width = 20; }
                         }
                     }
                 }
