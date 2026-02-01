@@ -609,7 +609,7 @@
 
         // Chime sound using Web Audio API
         let audioContext = null;
-        function playChime() {
+        function playChime(type = 'close') {
             if (!soundEnabled) return;
             try {
                 if (!audioContext) {
@@ -621,14 +621,24 @@
                 oscillator.connect(gainNode);
                 gainNode.connect(audioContext.destination);
 
-                oscillator.frequency.setValueAtTime(880, audioContext.currentTime); // A5 note
-                oscillator.type = 'sine';
-
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 0.5);
+                if (type === 'open') {
+                    // Rising tone for trade open (C5 to E5)
+                    oscillator.frequency.setValueAtTime(523, audioContext.currentTime);
+                    oscillator.frequency.linearRampToValueAtTime(659, audioContext.currentTime + 0.15);
+                    oscillator.type = 'sine';
+                    gainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.3);
+                } else {
+                    // Single tone for trade close (A5)
+                    oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+                    oscillator.type = 'sine';
+                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                    oscillator.start(audioContext.currentTime);
+                    oscillator.stop(audioContext.currentTime + 0.5);
+                }
             } catch (e) {
                 console.log('Audio not available:', e);
             }
@@ -653,7 +663,7 @@
             `;
 
             container.appendChild(notification);
-            playChime();
+            playChime(type === 'open' ? 'open' : 'close');
 
             // Auto-hide after 5 seconds
             setTimeout(() => {
@@ -848,7 +858,12 @@
             const server = serverData[serverNum];
             if (!server) return;
 
-            const openTrades = server.status || [];
+            const openTrades = (server.status || []).slice().sort((a, b) => {
+                // Sort by open_date descending (newest first)
+                const dateA = a.open_date ? new Date(a.open_date) : new Date(0);
+                const dateB = b.open_date ? new Date(b.open_date) : new Date(0);
+                return dateB - dateA;
+            });
             const serverName = server.name || `Server ${serverNum}`;
 
             document.getElementById('openTradesModalTitle').textContent = `Open Trades - ${serverName}`;
