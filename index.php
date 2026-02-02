@@ -1274,7 +1274,12 @@
         
         function formatCompactDate(dateStr) {
             if (!dateStr) return '-';
-            const d = new Date(dateStr);
+            // FreqTrade returns dates in UTC - ensure proper parsing
+            let str = dateStr.replace(' ', 'T');
+            if (!str.includes('Z') && !str.includes('+')) {
+                str += 'Z';  // Append Z to indicate UTC
+            }
+            const d = new Date(str);
             const day = d.getDate().toString().padStart(2, '0');
             const mon = (d.getMonth() + 1).toString().padStart(2, '0');
             const hrs = d.getHours().toString().padStart(2, '0');
