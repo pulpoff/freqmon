@@ -503,7 +503,7 @@
         </div>
 
         <!-- Server Cards -->
-        <div class="row g-3" id="serverCards">
+        <div class="row g-3 justify-content-center" id="serverCards">
             <!-- Cards will be inserted here -->
         </div>
     </div>
@@ -1630,18 +1630,18 @@
                 return;
             }
 
-            // Create 2-hour time slots for the last 10 days
+            // Create 1-hour time slots for the last 10 days
             const now = new Date();
             const startDate = new Date(now);
             startDate.setDate(startDate.getDate() - 10);
-            startDate.setHours(Math.floor(startDate.getHours() / 2) * 2, 0, 0, 0);
+            startDate.setHours(startDate.getHours(), 0, 0, 0);
 
-            // Generate all 2-hour slots
+            // Generate all 1-hour slots
             const slots = [];
             const slotTime = new Date(startDate);
             while (slotTime <= now) {
                 slots.push(new Date(slotTime));
-                slotTime.setHours(slotTime.getHours() + 2);
+                slotTime.setHours(slotTime.getHours() + 1);
             }
 
             // Calculate starting balance by subtracting all trade profits from current balance
@@ -1660,7 +1660,7 @@
 
             for (const slot of slots) {
                 const slotEnd = new Date(slot);
-                slotEnd.setHours(slotEnd.getHours() + 2);
+                slotEnd.setHours(slotEnd.getHours() + 1);
 
                 // Add profits from trades closed in this slot
                 while (tradeIdx < closedTrades.length) {
