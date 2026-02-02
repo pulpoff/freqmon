@@ -265,11 +265,18 @@ class FreqtradeClient
 
         $data['profit'] = $this->getProfit();
         $data['daily'] = $this->getDaily(10);
-        $data['trades'] = $this->getTrades(50);
+        $data['count'] = $this->getCount();
+
+        // Fetch enough trades to cover all closed trades (use closed_trade_count + buffer for open trades)
+        $tradeLimit = 50;
+        if (isset($data['profit']['closed_trade_count'])) {
+            $tradeLimit = max(50, $data['profit']['closed_trade_count'] + 20);
+        }
+        $data['trades'] = $this->getTrades($tradeLimit);
+
         $data['status'] = $this->getStatus();
         $data['balance'] = $this->getBalance();
         $data['config'] = $this->getConfig();
-        $data['count'] = $this->getCount();
 
         return $data;
     }
