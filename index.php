@@ -677,7 +677,8 @@
             const closedTrades = server.trades?.trades?.filter(t => !t.is_open) || [];
             const openTrades = server.status || [];
             return {
-                closedCount: closedTrades.length,
+                // Use actual closed_trade_count from profit, not array length (API returns max 50)
+                closedCount: server.profit?.closed_trade_count || closedTrades.length,
                 openCount: openTrades.length,
                 lastClosedId: closedTrades.length > 0 ? closedTrades[0].trade_id : null,
                 lastOpenIds: openTrades.map(t => t.trade_id).sort().join(','),
