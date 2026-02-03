@@ -969,7 +969,9 @@
                 // Get first trade date string to filter out days before strategy started
                 let firstTradeDateStr = null;
                 if (profit.first_trade_timestamp) {
-                    const firstTradeDate = new Date(profit.first_trade_timestamp * 1000);
+                    // Detect if timestamp is in seconds or milliseconds (ms timestamps are > 1e12)
+                    const ts = profit.first_trade_timestamp > 1e12 ? profit.first_trade_timestamp : profit.first_trade_timestamp * 1000;
+                    const firstTradeDate = new Date(ts);
                     // Get date string in YYYY-MM-DD format (UTC)
                     firstTradeDateStr = firstTradeDate.toISOString().split('T')[0];
                 }
@@ -1469,13 +1471,17 @@
             // Calculate days running from first trade timestamp
             let daysText = '';
             if (profit.first_trade_timestamp) {
-                const firstTrade = new Date(profit.first_trade_timestamp * 1000);
+                // Detect if timestamp is in seconds or milliseconds (ms timestamps are > 1e12)
+                const ts = profit.first_trade_timestamp > 1e12 ? profit.first_trade_timestamp : profit.first_trade_timestamp * 1000;
+                const firstTrade = new Date(ts);
                 const now = new Date();
                 // Count calendar days (set both to start of day UTC and count difference)
                 const firstDay = new Date(Date.UTC(firstTrade.getFullYear(), firstTrade.getMonth(), firstTrade.getDate()));
                 const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
                 const days = Math.round((today - firstDay) / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end day
-                daysText = `(${days} day${days !== 1 ? 's' : ''})`;
+                if (days > 0) {
+                    daysText = `(${days} day${days !== 1 ? 's' : ''})`;
+                }
             } else if (trades.length > 0) {
                 const allDates = trades
                     .map(t => t.open_date)
