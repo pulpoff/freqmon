@@ -103,7 +103,16 @@
         .info-btn:hover {
             opacity: 1;
         }
-        
+
+        .days-clickable {
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .days-clickable:hover {
+            color: var(--accent-blue);
+        }
+
         .modal-overlay {
             display: none;
             position: fixed;
@@ -555,6 +564,18 @@
         </div>
     </div>
 
+    <!-- Daily Profit Modal -->
+    <div class="modal-overlay" id="dailyProfitModal" onclick="closeDailyProfitModal(event)">
+        <div class="open-trades-modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h5 id="dailyProfitModalTitle">Daily Performance</h5>
+                <button class="modal-close" onclick="closeDailyProfitModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="dailyProfitModalBody">
+            </div>
+        </div>
+    </div>
+
     <style>
         .open-trades-modal-content {
             background: var(--bg-secondary);
@@ -927,12 +948,79 @@
             document.getElementById('openTradesModal').classList.remove('show');
         }
 
+        function showDailyProfit(serverNum, event) {
+            event.stopPropagation();
+            const server = serverData[serverNum];
+            if (!server) return;
+
+            const daily = server.daily?.data || [];
+            const config = server.config || {};
+            const profit = server.profit || {};
+            const serverName = server.name || `Server ${serverNum}`;
+            const stakeCurrency = config.stake_currency || 'USDT';
+            const startingBalance = (server.balance?.total || 0) - (profit.profit_closed_coin || 0);
+
+            document.getElementById('dailyProfitModalTitle').textContent = `Daily Performance - ${serverName}`;
+
+            if (daily.length === 0) {
+                document.getElementById('dailyProfitModalBody').innerHTML = '<div class="no-data">No daily data available</div>';
+            } else {
+                // Sort by date descending (most recent first) and take up to 20
+                const sortedDaily = [...daily].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 20);
+
+                const rows = sortedDaily.map(d => {
+                    const profitValue = d.abs_profit || 0;
+                    const tradeCount = d.trade_count || 0;
+                    const profitPct = startingBalance > 0 ? ((profitValue / startingBalance) * 100) : 0;
+                    const profitClass = profitValue >= 0 ? 'text-success' : 'text-danger';
+                    const rowClass = profitValue >= 0 ? 'row-profit' : 'row-loss';
+                    const date = new Date(d.date);
+                    const dateStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' });
+
+                    return `
+                        <tr class="${rowClass}">
+                            <td class="text-center">${tradeCount}</td>
+                            <td class="text-end ${profitClass}">${profitValue >= 0 ? '+' : ''}${profitValue.toFixed(2)}</td>
+                            <td class="text-end ${profitClass}">${profitPct >= 0 ? '+' : ''}${profitPct.toFixed(2)}%</td>
+                            <td class="text-end"><small style="color: #8b949e;">${dateStr}</small></td>
+                        </tr>
+                    `;
+                }).join('');
+
+                document.getElementById('dailyProfitModalBody').innerHTML = `
+                    <div class="trades-scroll">
+                        <table class="table table-dark mini-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th class="text-center">Trades</th>
+                                    <th class="text-end">Profit</th>
+                                    <th class="text-end">%</th>
+                                    <th class="text-end">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${rows}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+
+            document.getElementById('dailyProfitModal').classList.add('show');
+        }
+
+        function closeDailyProfitModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('dailyProfitModal').classList.remove('show');
+        }
+
         // Close modal on ESC key
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeModal();
                 closeTradeModal();
                 closeOpenTradesModal();
+                closeDailyProfitModal();
             }
         });
         
@@ -1381,8 +1469,8 @@
                     <div class="card-body p-2">
                         <div class="server-header">
                             <div>
-                                <h5 class="server-name">${escapeHtml(server.name)}</h5>
-                                ${isOnline ? `<div class="strategy-name"><i class="bi bi-cpu me-1"></i>${escapeHtml(strategy)}${daysText ? ` <span class="days-badge">${daysText}</span>` : ''} <span class="info-btn" onclick="showStrategyInfo(${server.server_num}, event)"><i class="bi bi-info-circle"></i></span></div>` : ''}
+                                <h5 class="server-name">${escapeHtml(server.name)} <span class="info-btn" onclick="showStrategyInfo(${server.server_num}, event)"><i class="bi bi-info-circle"></i></span></h5>
+                                ${isOnline ? `<div class="strategy-name"><i class="bi bi-cpu me-1"></i>${escapeHtml(strategy)}${daysText ? ` <span class="days-badge days-clickable" onclick="showDailyProfit(${server.server_num}, event)">${daysText}</span>` : ''}</div>` : ''}
                             </div>
                             <div class="d-flex align-items-center gap-2">
                                 ${openTrades.length > 0 ? `<span class="open-trades-count" onclick="showOpenTrades(${server.server_num}, event)">${openTrades.length} open</span>` : ''}
