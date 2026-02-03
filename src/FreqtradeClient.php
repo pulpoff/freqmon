@@ -264,7 +264,8 @@ class FreqtradeClient
         }
 
         $data['profit'] = $this->getProfit();
-        $data['daily'] = $this->getDaily(20);
+        $days = Config::getInstance()->getDays();
+        $data['daily'] = $this->getDaily($days);
         $data['count'] = $this->getCount();
 
         // Fetch enough trades to cover all closed trades (use closed_trade_count + buffer for open trades)
