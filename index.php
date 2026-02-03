@@ -997,8 +997,8 @@
                     const profitValue = d.abs_profit || 0;
                     const tradeCount = d.trade_count || 0;
                     const profitPct = startingBalance > 0 ? ((profitValue / startingBalance) * 100) : 0;
-                    const profitClass = profitValue >= 0 ? 'text-success' : 'text-danger';
-                    const rowClass = profitValue >= 0 ? 'row-profit' : 'row-loss';
+                    const profitClass = profitValue > 0 ? 'text-success' : (profitValue < 0 ? 'text-danger' : 'text-muted');
+                    const rowClass = profitValue > 0 ? 'row-profit' : (profitValue < 0 ? 'row-loss' : '');
                     const date = new Date(d.date);
                     const dateStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: '2-digit' });
 
