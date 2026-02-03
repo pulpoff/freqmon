@@ -965,8 +965,23 @@
             if (daily.length === 0) {
                 document.getElementById('dailyProfitModalBody').innerHTML = '<div class="no-data">No daily data available</div>';
             } else {
-                // Sort by date descending (most recent first) and take up to 20
-                const sortedDaily = [...daily].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 20);
+                // Get first trade date to filter out days before strategy started
+                let firstTradeDate = null;
+                if (profit.first_trade_timestamp) {
+                    firstTradeDate = new Date(profit.first_trade_timestamp * 1000);
+                    firstTradeDate.setHours(0, 0, 0, 0); // Start of day
+                }
+
+                // Filter to only show days since first trade, sort descending, take up to 20
+                const sortedDaily = [...daily]
+                    .filter(d => {
+                        if (!firstTradeDate) return true;
+                        const dayDate = new Date(d.date);
+                        dayDate.setHours(0, 0, 0, 0);
+                        return dayDate >= firstTradeDate;
+                    })
+                    .sort((a, b) => new Date(b.date) - new Date(a.date))
+                    .slice(0, 20);
 
                 const rows = sortedDaily.map(d => {
                     const profitValue = d.abs_profit || 0;
