@@ -103,6 +103,7 @@ try {
         'settings' => [
             'summary_enabled' => $config->isSummaryEnabled(),
             'sound_enabled' => $config->isSoundEnabled(),
+            'days' => $config->getDays(),
         ],
         'data' => [
             'servers' => $serversData,

@@ -106,4 +106,9 @@ class Config
         $value = strtoupper($this->getSetting('SOUND', 'ON'));
         return $value === 'ON' || $value === 'TRUE' || $value === '1';
     }
+
+    public function getDays(): int
+    {
+        return (int) $this->getSetting('DAYS', 20);
+    }
 }

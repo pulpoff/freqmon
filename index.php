@@ -627,6 +627,7 @@
         const tradeCache = {}; // Store trade data for chart modal
         let previousServerState = {}; // Store previous state for comparison
         let soundEnabled = true; // Default to on, updated from settings
+        let configDays = 20; // Default days to show in charts, updated from settings
 
         // Chime sound using Web Audio API
         let audioContext = null;
@@ -983,7 +984,7 @@
                     }
                 }
 
-                // Filter to only show days since first trade, sort descending, take up to 20
+                // Filter to only show days since first trade, sort descending, take up to configDays
                 const sortedDaily = [...daily]
                     .filter(d => {
                         if (!firstTradeDateStr) return true;
@@ -991,7 +992,7 @@
                         return d.date >= firstTradeDateStr;
                     })
                     .sort((a, b) => new Date(b.date) - new Date(a.date))
-                    .slice(0, 20);
+                    .slice(0, configDays);
 
                 const rows = sortedDaily.map(d => {
                     const profitValue = d.abs_profit || 0;
@@ -1759,9 +1760,9 @@
                 startDate = new Date(sortedDaily[0].date);
                 startDate.setHours(0, 0, 0, 0);
             } else {
-                // Fallback to 10 days if no daily data
+                // Fallback to configDays if no daily data
                 startDate = new Date(now);
-                startDate.setDate(startDate.getDate() - 10);
+                startDate.setDate(startDate.getDate() - configDays);
                 startDate.setHours(0, 0, 0, 0);
             }
 
@@ -1903,8 +1904,9 @@
                 const data = result.data;
                 const settings = result.settings || {};
 
-                // Update sound setting
+                // Update settings
                 soundEnabled = settings.sound_enabled !== false;
+                configDays = settings.days || 20;
 
                 // Show/hide summary stats based on settings
                 const summaryStats = document.getElementById('summaryStats');
