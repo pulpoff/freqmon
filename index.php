@@ -1709,7 +1709,7 @@
 
         const balanceCharts = {};
 
-        function createBalanceChart(serverId, trades, currentBalance) {
+        function createBalanceChart(serverId, trades, currentBalance, dailyData) {
             const ctx = document.getElementById(`balance-chart-${serverId}`);
             if (!ctx) return;
 
@@ -1749,11 +1749,21 @@
                 return;
             }
 
-            // Create 1-hour time slots for the last 10 days
+            // Use same date range as daily performance chart
             const now = new Date();
-            const startDate = new Date(now);
-            startDate.setDate(startDate.getDate() - 10);
-            startDate.setHours(startDate.getHours(), 0, 0, 0);
+            let startDate;
+
+            if (dailyData && dailyData.length > 0) {
+                // Get earliest date from daily data (already sorted oldest first after reverse)
+                const sortedDaily = [...dailyData].sort((a, b) => a.date.localeCompare(b.date));
+                startDate = new Date(sortedDaily[0].date);
+                startDate.setHours(0, 0, 0, 0);
+            } else {
+                // Fallback to 10 days if no daily data
+                startDate = new Date(now);
+                startDate.setDate(startDate.getDate() - 10);
+                startDate.setHours(0, 0, 0, 0);
+            }
 
             // Generate all 1-hour slots
             const slots = [];
@@ -1989,7 +1999,7 @@
                     for (const [serverNum, server] of Object.entries(data.servers)) {
                         if (server.online && server.daily?.data) {
                             const currentBalance = server.balance?.total || 0;
-                            createBalanceChart(server.server_num, server.trades?.trades || [], currentBalance);
+                            createBalanceChart(server.server_num, server.trades?.trades || [], currentBalance, server.daily.data);
                             createChart(server.server_num, server.daily.data);
                         }
                     }
