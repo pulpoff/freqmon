@@ -1466,16 +1466,16 @@
             const balance = server.balance?.total || 0;
             const balanceBeforeToday = balance - profitToday;
             
-            // Calculate days running from profit API or trades
+            // Calculate days running from first trade timestamp
             let daysText = '';
-            if (profit.first_trade_humanized) {
-                // Use humanized string like "2 days ago" -> extract just the time part
-                daysText = `(${profit.first_trade_humanized.replace(' ago', '')})`;
-            } else if (profit.first_trade_timestamp) {
+            if (profit.first_trade_timestamp) {
                 const firstTrade = new Date(profit.first_trade_timestamp * 1000);
                 const now = new Date();
-                const days = Math.max(1, Math.floor((now - firstTrade) / (1000 * 60 * 60 * 24)));
-                daysText = `(${days}d)`;
+                // Count calendar days (set both to start of day UTC and count difference)
+                const firstDay = new Date(Date.UTC(firstTrade.getFullYear(), firstTrade.getMonth(), firstTrade.getDate()));
+                const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+                const days = Math.round((today - firstDay) / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end day
+                daysText = `(${days} day${days !== 1 ? 's' : ''})`;
             } else if (trades.length > 0) {
                 const allDates = trades
                     .map(t => t.open_date)
@@ -1484,8 +1484,10 @@
                 if (allDates.length > 0) {
                     const earliest = new Date(Math.min(...allDates.map(d => d.getTime())));
                     const now = new Date();
-                    const days = Math.max(1, Math.floor((now - earliest) / (1000 * 60 * 60 * 24)));
-                    daysText = `(${days}d)`;
+                    const firstDay = new Date(Date.UTC(earliest.getFullYear(), earliest.getMonth(), earliest.getDate()));
+                    const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+                    const days = Math.round((today - firstDay) / (1000 * 60 * 60 * 24)) + 1;
+                    daysText = `(${days} day${days !== 1 ? 's' : ''})`;
                 }
             }
             
