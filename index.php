@@ -973,6 +973,16 @@
                     firstTradeDateStr = firstTradeDate.toISOString().split('T')[0];
                 }
 
+                // Fallback: find first day with actual trades from daily data
+                if (!firstTradeDateStr) {
+                    const daysWithTrades = daily
+                        .filter(d => (d.trade_count || 0) > 0)
+                        .sort((a, b) => a.date.localeCompare(b.date));
+                    if (daysWithTrades.length > 0) {
+                        firstTradeDateStr = daysWithTrades[0].date;
+                    }
+                }
+
                 // Filter to only show days since first trade, sort descending, take up to 20
                 const sortedDaily = [...daily]
                     .filter(d => {
