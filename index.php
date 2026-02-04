@@ -113,6 +113,21 @@
             color: var(--accent-blue);
         }
 
+        .activity-star {
+            display: none;
+            color: #ffd700;
+            animation: starGlow 1s ease-in-out infinite;
+            margin-left: 6px;
+            font-size: 0.9rem;
+        }
+        .activity-star.show {
+            display: inline-block;
+        }
+        @keyframes starGlow {
+            0%, 100% { opacity: 0.4; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+
         .modal-overlay {
             display: none;
             position: fixed;
@@ -692,6 +707,25 @@
                 notification.classList.add('hiding');
                 setTimeout(() => notification.remove(), 300);
             }, 5000);
+        }
+
+        // Show glowing activity star on server card
+        const activityStarTimers = {};
+        function showActivityStar(serverNum) {
+            const star = document.getElementById(`activity-star-${serverNum}`);
+            if (!star) return;
+
+            // Clear any existing timer
+            if (activityStarTimers[serverNum]) {
+                clearTimeout(activityStarTimers[serverNum]);
+            }
+
+            star.classList.add('show');
+
+            // Hide after 10 seconds
+            activityStarTimers[serverNum] = setTimeout(() => {
+                star.classList.remove('show');
+            }, 10000);
         }
 
         // Generate a hash/signature for server data to detect changes
@@ -1503,7 +1537,7 @@
                     <div class="card-body p-2">
                         <div class="server-header">
                             <div>
-                                <h5 class="server-name">${escapeHtml(server.name)} <span class="info-btn" onclick="showStrategyInfo(${server.server_num}, event)"><i class="bi bi-info-circle"></i></span></h5>
+                                <h5 class="server-name">${escapeHtml(server.name)} <span class="info-btn" onclick="showStrategyInfo(${server.server_num}, event)"><i class="bi bi-info-circle"></i></span><span class="activity-star" id="activity-star-${server.server_num}"><i class="bi bi-star-fill"></i></span></h5>
                                 ${isOnline ? `<div class="strategy-name"><i class="bi bi-cpu me-1"></i>${escapeHtml(strategy)}${daysText ? ` <span class="days-badge days-clickable" onclick="showDailyProfit(${server.server_num}, event)">${daysText}</span>` : ''}</div>` : ''}
                             </div>
                             <div class="d-flex align-items-center gap-2">
@@ -1982,6 +2016,11 @@
                                 `Opened <strong>${coin}</strong> ${trade.is_short ? 'SHORT' : 'LONG'}`,
                                 'open'
                             );
+                        }
+
+                        // Show activity star if there were any new trades
+                        if (changes.newClosedTrades.length > 0 || changes.newOpenTrades.length > 0) {
+                            showActivityStar(server.server_num);
                         }
                     }
 
