@@ -653,29 +653,39 @@
                 if (!audioContext) {
                     audioContext = new (window.AudioContext || window.webkitAudioContext)();
                 }
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
 
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
+                const doPlay = () => {
+                    const oscillator = audioContext.createOscillator();
+                    const gainNode = audioContext.createGain();
 
-                if (type === 'open') {
-                    // Rising tone for trade open (C5 to E5)
-                    oscillator.frequency.setValueAtTime(523, audioContext.currentTime);
-                    oscillator.frequency.linearRampToValueAtTime(659, audioContext.currentTime + 0.15);
-                    oscillator.type = 'sine';
-                    gainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
-                    oscillator.start(audioContext.currentTime);
-                    oscillator.stop(audioContext.currentTime + 0.3);
+                    oscillator.connect(gainNode);
+                    gainNode.connect(audioContext.destination);
+
+                    if (type === 'open') {
+                        // Rising tone for trade open (C5 to E5)
+                        oscillator.frequency.setValueAtTime(523, audioContext.currentTime);
+                        oscillator.frequency.linearRampToValueAtTime(659, audioContext.currentTime + 0.15);
+                        oscillator.type = 'sine';
+                        gainNode.gain.setValueAtTime(0.25, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.3);
+                        oscillator.start(audioContext.currentTime);
+                        oscillator.stop(audioContext.currentTime + 0.3);
+                    } else {
+                        // Single tone for trade close (A5)
+                        oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
+                        oscillator.type = 'sine';
+                        gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+                        oscillator.start(audioContext.currentTime);
+                        oscillator.stop(audioContext.currentTime + 0.5);
+                    }
+                };
+
+                // Resume audio context if suspended (browser policy) then play
+                if (audioContext.state === 'suspended') {
+                    audioContext.resume().then(doPlay);
                 } else {
-                    // Single tone for trade close (A5)
-                    oscillator.frequency.setValueAtTime(880, audioContext.currentTime);
-                    oscillator.type = 'sine';
-                    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
-                    oscillator.start(audioContext.currentTime);
-                    oscillator.stop(audioContext.currentTime + 0.5);
+                    doPlay();
                 }
             } catch (e) {
                 console.log('Audio not available:', e);
