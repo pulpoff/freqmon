@@ -268,17 +268,73 @@ class FreqtradeClient
         $data['daily'] = $this->getDaily($days);
         $data['count'] = $this->getCount();
 
-        // Fetch enough trades to cover all closed trades (use closed_trade_count + buffer for open trades)
-        $tradeLimit = 50;
-        if (isset($data['profit']['closed_trade_count'])) {
-            $tradeLimit = max(50, $data['profit']['closed_trade_count'] + 20);
-        }
-        $data['trades'] = $this->getTrades($tradeLimit);
+        // Fetch limited trades (50 max) and filter to essential fields only
+        $trades = $this->getTrades(50);
+        $data['trades'] = $this->filterTradeFields($trades);
 
         $data['status'] = $this->getStatus();
         $data['balance'] = $this->getBalance();
-        $data['config'] = $this->getConfig();
+
+        // Filter config to only essential fields
+        $fullConfig = $this->getConfig();
+        $data['config'] = $this->filterConfigFields($fullConfig);
 
         return $data;
+    }
+
+    /**
+     * Filter trades to only essential fields to reduce data transfer
+     */
+    private function filterTradeFields(?array $tradesData): ?array
+    {
+        if ($tradesData === null || !isset($tradesData['trades'])) {
+            return $tradesData;
+        }
+
+        $essentialFields = [
+            'trade_id', 'pair', 'is_open', 'is_short',
+            'open_date', 'close_date',
+            'profit_abs', 'profit_pct', 'profit_ratio',
+            'stake_amount', 'amount', 'open_rate', 'close_rate',
+            'stop_loss_abs', 'stop_loss_pct',
+            'realized_profit',
+        ];
+
+        $filteredTrades = [];
+        foreach ($tradesData['trades'] as $trade) {
+            $filtered = [];
+            foreach ($essentialFields as $field) {
+                if (isset($trade[$field])) {
+                    $filtered[$field] = $trade[$field];
+                }
+            }
+            $filteredTrades[] = $filtered;
+        }
+
+        return ['trades' => $filteredTrades];
+    }
+
+    /**
+     * Filter config to only essential fields to reduce data transfer
+     */
+    private function filterConfigFields(?array $config): ?array
+    {
+        if ($config === null) {
+            return null;
+        }
+
+        $essentialFields = [
+            'strategy', 'stake_currency', 'dry_run',
+            'trading_mode', 'timeframe',
+        ];
+
+        $filtered = [];
+        foreach ($essentialFields as $field) {
+            if (isset($config[$field])) {
+                $filtered[$field] = $config[$field];
+            }
+        }
+
+        return $filtered;
     }
 }
