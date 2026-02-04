@@ -4,8 +4,10 @@
  * Returns JSON response for real-time updates without page reload
  */
 
-// Ensure clean output
-ob_start();
+// Enable gzip compression if supported
+if (!ob_start('ob_gzhandler')) {
+    ob_start();
+}
 
 header('Content-Type: application/json');
 header('Cache-Control: no-cache, must-revalidate');
