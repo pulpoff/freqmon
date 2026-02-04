@@ -61,9 +61,15 @@ SERVER_3=Future65|192.168.10.100:4300|freqtrader|your_password
 # ... add all servers
 
 # Dashboard Settings
-REFRESH_INTERVAL=60
-CACHE_TTL=30
-TIMEZONE=Europe/Berlin
+REFRESH_INTERVAL=60      # Auto-refresh interval in seconds
+CACHE_TTL=30             # Cache time-to-live in seconds
+TIMEZONE=Europe/Berlin   # Timezone for date display
+
+# UI Settings
+SUMMARY=OFF              # Show summary stats bar at top (ON/OFF, default: OFF)
+SOUND=ON                 # Play chime sound for new trade notifications (ON/OFF, default: ON)
+DAYS=20                  # Number of days to show in charts (default: 20)
+NOTIFY=10                # Duration in seconds to show activity star after new trades (default: 10)
 ```
 
 ### 4. FreqTrade API Configuration

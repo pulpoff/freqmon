@@ -301,7 +301,7 @@ class FreqtradeClient
             'profit_abs', 'profit_pct', 'profit_ratio',
             'stake_amount', 'amount', 'open_rate', 'close_rate',
             'stop_loss_abs', 'stop_loss_pct',
-            'realized_profit',
+            'realized_profit', 'leverage', 'exit_reason',
         ];
 
         $filteredTrades = [];
