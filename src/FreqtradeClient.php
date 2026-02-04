@@ -308,7 +308,7 @@ class FreqtradeClient
         foreach ($tradesData['trades'] as $trade) {
             $filtered = [];
             foreach ($essentialFields as $field) {
-                if (isset($trade[$field])) {
+                if (array_key_exists($field, $trade)) {
                     $filtered[$field] = $trade[$field];
                 }
             }
