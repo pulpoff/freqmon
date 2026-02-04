@@ -643,6 +643,7 @@
         let previousServerState = {}; // Store previous state for comparison
         let soundEnabled = true; // Default to on, updated from settings
         let configDays = 20; // Default days to show in charts, updated from settings
+        let notifyDuration = 10; // Default seconds to show activity star, updated from settings
 
         // Chime sound using Web Audio API
         let audioContext = null;
@@ -722,10 +723,10 @@
 
             star.classList.add('show');
 
-            // Hide after 10 seconds
+            // Hide after configured duration (notifyDuration in seconds)
             activityStarTimers[serverNum] = setTimeout(() => {
                 star.classList.remove('show');
-            }, 10000);
+            }, notifyDuration * 1000);
         }
 
         // Generate a hash/signature for server data to detect changes
@@ -1949,6 +1950,7 @@
                 // Update settings
                 soundEnabled = settings.sound_enabled !== false;
                 configDays = settings.days || 20;
+                notifyDuration = settings.notify_duration || 10;
 
                 // Show/hide summary stats based on settings
                 const summaryStats = document.getElementById('summaryStats');
@@ -1979,6 +1981,7 @@
                 const container = document.getElementById('serverCards');
                 const serversToUpdate = [];
                 const newServerState = {};
+                const serversWithActivity = []; // Track servers with new trades
 
                 // Check each server for changes
                 for (const [serverNum, server] of Object.entries(data.servers)) {
@@ -2018,9 +2021,9 @@
                             );
                         }
 
-                        // Show activity star if there were any new trades
+                        // Track servers with new trades for activity star
                         if (changes.newClosedTrades.length > 0 || changes.newOpenTrades.length > 0) {
-                            showActivityStar(server.server_num);
+                            serversWithActivity.push(server.server_num);
                         }
                     }
 
@@ -2075,6 +2078,11 @@
                     }
                 }
                 // If no changes, do nothing (no refresh)
+
+                // Show activity stars for servers with new trades (after DOM updates)
+                for (const serverNum of serversWithActivity) {
+                    showActivityStar(serverNum);
+                }
 
                 // Hide loading modal
                 if (isFirstLoad) {

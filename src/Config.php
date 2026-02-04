@@ -111,4 +111,9 @@ class Config
     {
         return (int) $this->getSetting('DAYS', 20);
     }
+
+    public function getNotifyDuration(): int
+    {
+        return (int) $this->getSetting('NOTIFY', 10);
+    }
 }
