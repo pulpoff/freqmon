@@ -268,8 +268,8 @@ class FreqtradeClient
         $data['daily'] = $this->getDaily($days);
         $data['count'] = $this->getCount();
 
-        // Fetch limited trades (50 max) and filter to essential fields only
-        $trades = $this->getTrades(50);
+        // Fetch limited trades (100 max) and filter to essential fields only
+        $trades = $this->getTrades(100);
         $data['trades'] = $this->filterTradeFields($trades);
 
         $data['status'] = $this->getStatus();
