@@ -64,24 +64,33 @@ date_default_timezone_set($config->getTimezone());
             font-size: 0.65rem;
             margin: 0;
             color: #ffffff;
+            --bs-table-bg: transparent;
+            --bs-table-striped-bg: transparent;
+            --bs-table-hover-bg: var(--bg-tertiary);
+            --bs-table-border-color: var(--border-color);
         }
 
         .mini-table th {
-            background: var(--bg-tertiary);
+            background: var(--bg-tertiary) !important;
             color: #a0a8b2;
             font-weight: 500;
             padding: 0.25rem 0.3rem;
-            border-color: var(--border-color);
+            border-color: var(--border-color) !important;
         }
 
         .mini-table td {
             padding: 0.2rem 0.3rem;
-            border-color: var(--border-color);
+            border-color: var(--border-color) !important;
             vertical-align: middle;
+            background: transparent !important;
+        }
+
+        .mini-table tbody tr {
+            background: transparent !important;
         }
 
         .mini-table tbody tr:hover {
-            background: var(--bg-tertiary);
+            background: var(--bg-tertiary) !important;
         }
 
         .section-title {
@@ -101,6 +110,12 @@ date_default_timezone_set($config->getTimezone());
             font-family: monospace;
             font-size: 0.6rem;
             color: #ffffff;
+            border: none;
+        }
+
+        .table {
+            --bs-table-bg: transparent;
+            --bs-table-border-color: var(--border-color);
         }
 
         .badge-status-2xx {
