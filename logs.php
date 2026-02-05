@@ -319,7 +319,8 @@ date_default_timezone_set($config->getTimezone());
 
             if (preg_match($pattern, $line, $matches)) {
                 $timeStr = $matches[4];
-                $timestamp = strtotime(str_replace('/', ' ', str_replace(['[', ']'], '', $timeStr)));
+                $dateStr = preg_replace('/(\d{4}):/', '$1 ', str_replace('/', ' ', $timeStr));
+                $timestamp = strtotime($dateStr);
                 return [
                     'ip' => $matches[1],
                     'remote_user' => $matches[3],
