@@ -60,19 +60,30 @@ date_default_timezone_set($config->getTimezone());
             margin-top: 0.2rem;
         }
 
-        .mini-table {
+        .table, .mini-table {
             font-size: 0.65rem;
             margin: 0;
             color: #ffffff;
+            background-color: transparent !important;
             --bs-table-bg: transparent;
+            --bs-table-color: #ffffff;
             --bs-table-striped-bg: transparent;
+            --bs-table-striped-color: #ffffff;
             --bs-table-hover-bg: var(--bg-tertiary);
+            --bs-table-hover-color: #ffffff;
+            --bs-table-active-bg: transparent;
             --bs-table-border-color: var(--border-color);
+        }
+
+        .mini-table thead,
+        .mini-table tbody,
+        .mini-table tfoot {
+            background-color: transparent !important;
         }
 
         .mini-table th {
             background: var(--bg-tertiary) !important;
-            color: #a0a8b2;
+            color: #a0a8b2 !important;
             font-weight: 500;
             padding: 0.25rem 0.3rem;
             border-color: var(--border-color) !important;
@@ -82,15 +93,19 @@ date_default_timezone_set($config->getTimezone());
             padding: 0.2rem 0.3rem;
             border-color: var(--border-color) !important;
             vertical-align: middle;
-            background: transparent !important;
+            background-color: transparent !important;
         }
 
-        .mini-table tbody tr {
-            background: transparent !important;
+        .mini-table tr {
+            background-color: transparent !important;
         }
 
         .mini-table tbody tr:hover {
-            background: var(--bg-tertiary) !important;
+            background-color: var(--bg-tertiary) !important;
+        }
+
+        .mini-table tbody tr:hover td {
+            background-color: var(--bg-tertiary) !important;
         }
 
         .section-title {
@@ -111,11 +126,6 @@ date_default_timezone_set($config->getTimezone());
             font-size: 0.6rem;
             color: #ffffff;
             border: none;
-        }
-
-        .table {
-            --bs-table-bg: transparent;
-            --bs-table-border-color: var(--border-color);
         }
 
         .badge-status-2xx {
