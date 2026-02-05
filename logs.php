@@ -522,6 +522,7 @@ date_default_timezone_set($config->getTimezone());
                                 <th>Method</th>
                                 <th>URL</th>
                                 <th>Status</th>
+                                <th>Size</th>
                             </tr>
                         </thead>
                         <tbody id="modalRequests"></tbody>
@@ -560,6 +561,7 @@ date_default_timezone_set($config->getTimezone());
                     const date = new Date(request.timestamp * 1000);
                     const timeStr = date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) + ' ' + date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
                     const statusClass = 'badge-status-' + request.status.charAt(0) + 'xx';
+                    const sizeKB = request.bytes > 0 ? (request.bytes / 1024).toFixed(1) + 'K' : '-';
 
                     const row = document.createElement('tr');
                     row.innerHTML = `
@@ -567,6 +569,7 @@ date_default_timezone_set($config->getTimezone());
                         <td><span class="badge" style="background: var(--bg-tertiary); font-size: 0.5rem;">${request.method}</span></td>
                         <td title="${request.url}" style="max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${request.url}</td>
                         <td><span class="badge rounded-pill ${statusClass}" style="font-size: 0.5rem;">${request.status}</span></td>
+                        <td style="text-align: right;">${sizeKB}</td>
                     `;
                     modalRequests.appendChild(row);
 
