@@ -104,22 +104,6 @@
             opacity: 1;
         }
 
-        .bybit-avatar {
-            width: 24px;
-            height: 24px;
-            border-radius: 50%;
-            margin-right: 0.4rem;
-            vertical-align: middle;
-            border: 1px solid var(--border-color);
-            cursor: pointer;
-            transition: transform 0.2s, border-color 0.2s;
-        }
-
-        .bybit-avatar:hover {
-            transform: scale(1.1);
-            border-color: var(--accent-yellow);
-        }
-
         .server-name-link {
             color: #ffffff;
             text-decoration: none;
@@ -1642,7 +1626,7 @@
                     <div class="card-body p-2">
                         <div class="server-header">
                             <div>
-                                <h5 class="server-name">${server.bybit_avatar ? `<a href="https://www.bybit.com/copyTrade/trade-center/detail?leaderMark=${server.bybit_id}" target="_blank" onclick="event.stopPropagation()"><img src="https://www.bybit.com/bycsi-root/fop/copytrade/${server.bybit_avatar}.png?format=avif&quality=40" class="bybit-avatar" onerror="this.style.display='none'"></a>` : ''}<span class="info-btn me-2" onclick="showStrategyInfo(${server.server_num}, event)"><i class="bi bi-info-circle"></i></span>${server.bybit_id ? `<a href="https://www.bybit.com/copyTrade/trade-center/detail?leaderMark=${server.bybit_id}" target="_blank" class="server-name-link" onclick="event.stopPropagation()">${escapeHtml(server.name)}</a>` : escapeHtml(server.name)}<span class="activity-star" id="activity-star-${server.server_num}"><i class="bi bi-star-fill"></i></span></h5>
+                                <h5 class="server-name"><span class="info-btn me-2" onclick="showStrategyInfo(${server.server_num}, event)"><i class="bi bi-info-circle"></i></span>${server.bybit_id ? `<a href="https://www.bybit.com/copyTrade/trade-center/detail?leaderMark=${server.bybit_id}" target="_blank" class="server-name-link" onclick="event.stopPropagation()">${escapeHtml(server.name)}</a>` : escapeHtml(server.name)}<span class="activity-star" id="activity-star-${server.server_num}"><i class="bi bi-star-fill"></i></span></h5>
                                 ${isOnline ? `<div class="strategy-name"><i class="bi bi-cpu me-1"></i>${escapeHtml(strategy)}${daysText ? ` <span class="days-badge days-clickable" onclick="showDailyProfit(${server.server_num}, event)">${daysText}</span>` : ''}</div>` : ''}
                             </div>
                             <div class="d-flex align-items-center gap-2">
