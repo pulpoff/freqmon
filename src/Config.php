@@ -116,4 +116,10 @@ class Config
     {
         return (int) $this->getSetting('NOTIFY', 10);
     }
+
+    public function getPassword(): ?string
+    {
+        $password = $this->getSetting('PASSWORD', null);
+        return $password ? (string) $password : null;
+    }
 }
