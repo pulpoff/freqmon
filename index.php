@@ -144,7 +144,11 @@
         .modal-overlay.show {
             display: flex;
         }
-        
+
+        #tradeModal {
+            z-index: 1100;
+        }
+
         .modal-content {
             background: var(--bg-secondary);
             border: 1px solid var(--border-color);
@@ -1162,7 +1166,10 @@
         let tradeChart = null;
 
         function closeTradeModal(event) {
-            if (event && event.target !== event.currentTarget) return;
+            if (event) {
+                event.stopPropagation();
+                if (event.target !== event.currentTarget) return;
+            }
             document.getElementById('tradeModal').classList.remove('show');
             if (tradeChart) {
                 tradeChart.destroy();
