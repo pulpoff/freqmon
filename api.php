@@ -24,8 +24,32 @@ try {
     $config = Config::getInstance();
     date_default_timezone_set($config->getTimezone());
 
+    $action = isset($_GET['action']) ? $_GET['action'] : '';
+
+    if ($action === 'check_auth') {
+        $password = $config->getPassword();
+        echo json_encode([
+            'success' => true,
+            'auth_required' => $password !== null,
+        ]);
+        exit;
+    }
+
+    if ($action === 'verify_password') {
+        $input = json_decode(file_get_contents('php://input'), true);
+        $providedPassword = $input['password'] ?? '';
+        $configPassword = $config->getPassword();
+
+        if ($configPassword === null || $providedPassword === $configPassword) {
+            echo json_encode(['success' => true]);
+        } else {
+            echo json_encode(['success' => false, 'error' => 'Invalid password']);
+        }
+        exit;
+    }
+
     // Handle pair_candles request
-    if (isset($_GET['action']) && $_GET['action'] === 'pair_candles') {
+    if ($action === 'pair_candles') {
         ob_clean(); // Clear any previous output
 
         $serverNum = isset($_GET['server']) ? intval($_GET['server']) : 1;

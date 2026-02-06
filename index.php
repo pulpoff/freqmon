@@ -558,6 +558,68 @@
         </div>
     </div>
 
+    <!-- Password Modal -->
+    <div class="modal-overlay" id="passwordModal">
+        <div class="password-modal-content">
+            <div class="password-title">Authentication Required</div>
+            <form id="passwordForm" onsubmit="return submitPassword(event)">
+                <input type="password" id="passwordInput" class="password-input" placeholder="Enter password" autocomplete="current-password">
+                <div id="passwordError" class="password-error"></div>
+                <button type="submit" class="password-submit">Unlock</button>
+            </form>
+        </div>
+    </div>
+
+    <style>
+        .password-modal-content {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1.5rem;
+            width: 280px;
+            text-align: center;
+        }
+        .password-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            color: #fff;
+        }
+        .password-input {
+            width: 100%;
+            padding: 0.5rem;
+            font-size: 0.8rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+        .password-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+        }
+        .password-error {
+            color: var(--accent-red);
+            font-size: 0.7rem;
+            min-height: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        .password-submit {
+            width: 100%;
+            padding: 0.5rem;
+            font-size: 0.8rem;
+            border: none;
+            border-radius: 4px;
+            background: var(--accent-blue);
+            color: #fff;
+            cursor: pointer;
+        }
+        .password-submit:hover {
+            opacity: 0.9;
+        }
+    </style>
+
     <!-- Loading Modal -->
     <div class="modal-overlay" id="loadingModal">
         <div class="loading-modal-content">
@@ -2108,11 +2170,78 @@
             }
         }
         
-        // Initial load
-        loadDashboard();
-        
-        // Auto refresh
-        refreshInterval = setInterval(loadDashboard, REFRESH_SECONDS * 1000);
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return null;
+        }
+
+        function setCookie(name, value, days) {
+            const expires = new Date(Date.now() + days * 864e5).toUTCString();
+            document.cookie = `${name}=${value}; expires=${expires}; path=/; SameSite=Strict`;
+        }
+
+        async function checkAuth() {
+            const response = await fetch('api.php?action=check_auth');
+            const result = await response.json();
+            return result.auth_required;
+        }
+
+        async function submitPassword(e) {
+            e.preventDefault();
+            const password = document.getElementById('passwordInput').value;
+            const errorEl = document.getElementById('passwordError');
+
+            const response = await fetch('api.php?action=verify_password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password })
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                setCookie('freqmon_auth', btoa(password), 30);
+                document.getElementById('passwordModal').classList.remove('show');
+                startDashboard();
+            } else {
+                errorEl.textContent = 'Invalid password';
+                document.getElementById('passwordInput').value = '';
+                document.getElementById('passwordInput').focus();
+            }
+            return false;
+        }
+
+        function startDashboard() {
+            loadDashboard();
+            refreshInterval = setInterval(loadDashboard, REFRESH_SECONDS * 1000);
+        }
+
+        async function initApp() {
+            const authRequired = await checkAuth();
+
+            if (authRequired) {
+                const savedAuth = getCookie('freqmon_auth');
+                if (savedAuth) {
+                    const response = await fetch('api.php?action=verify_password', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ password: atob(savedAuth) })
+                    });
+                    const result = await response.json();
+                    if (result.success) {
+                        startDashboard();
+                        return;
+                    }
+                }
+                document.getElementById('passwordModal').classList.add('show');
+                document.getElementById('passwordInput').focus();
+            } else {
+                startDashboard();
+            }
+        }
+
+        initApp();
     </script>
 
     <footer class="site-footer">

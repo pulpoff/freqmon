@@ -70,6 +70,9 @@ SUMMARY=OFF              # Show summary stats bar at top (ON/OFF, default: OFF)
 SOUND=ON                 # Play chime sound for new trade notifications (ON/OFF, default: ON)
 DAYS=20                  # Number of days to show in charts (default: 20)
 NOTIFY=10                # Duration in seconds to show activity star after new trades (default: 10)
+
+# Security
+PASSWORD=your_password   # Password protection for dashboard access (optional, leave empty to disable)
 ```
 
 ### 4. FreqTrade API Configuration
@@ -189,7 +192,7 @@ freqmon/
 2. Use a VPN or SSH tunnel for remote access
 3. Enable HTTPS if accessible outside localhost
 4. Use strong, unique passwords for each FreqTrade instance
-5. Consider adding authentication to the dashboard itself
+5. Enable dashboard password protection by setting `PASSWORD` in `.env`
 
 ## License
 
