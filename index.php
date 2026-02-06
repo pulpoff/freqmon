@@ -85,6 +85,15 @@
             font-weight: 500;
             margin-top: 0.2rem;
         }
+
+        .strategy-clickable {
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .strategy-clickable:hover {
+            color: var(--accent-blue);
+        }
         
         .days-badge {
             color: var(--text-secondary);
@@ -106,6 +115,19 @@
         .server-name-link {
             color: #ffffff;
             text-decoration: none;
+        }
+
+        .server-icon-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+        }
+
+        .server-icon-link:hover {
+            color: var(--accent-blue);
+        }
+
+        .server-icon {
+            color: var(--text-secondary);
         }
 
         .server-name-link:hover {
@@ -1625,8 +1647,8 @@
                     <div class="card-body p-2">
                         <div class="server-header">
                             <div>
-                                <h5 class="server-name"><span class="info-btn me-2" onclick="showStrategyInfo(${server.server_num}, event)"><i class="bi bi-info-circle"></i></span>${server.url ? `<a href="${escapeHtml(server.url)}" target="_blank" class="server-name-link" onclick="event.stopPropagation()">${escapeHtml(server.name)}</a>` : escapeHtml(server.name)}<span class="activity-star" id="activity-star-${server.server_num}"><i class="bi bi-star-fill"></i></span></h5>
-                                ${isOnline ? `<div class="strategy-name"><i class="bi bi-cpu me-1"></i>${escapeHtml(strategy)}${daysText ? ` <span class="days-badge days-clickable" onclick="showDailyProfit(${server.server_num}, event)">${daysText}</span>` : ''}</div>` : ''}
+                                <h5 class="server-name">${server.url ? `<a href="${escapeHtml(server.url)}" target="_blank" class="server-icon-link" onclick="event.stopPropagation()"><i class="bi bi-hdd me-1"></i></a><a href="${escapeHtml(server.url)}" target="_blank" class="server-name-link" onclick="event.stopPropagation()">${escapeHtml(server.name)}</a>` : `<i class="bi bi-hdd me-1 server-icon"></i>${escapeHtml(server.name)}`}<span class="activity-star" id="activity-star-${server.server_num}"><i class="bi bi-star-fill"></i></span></h5>
+                                ${isOnline ? `<div class="strategy-name strategy-clickable" onclick="showStrategyInfo(${server.server_num}, event)"><i class="bi bi-cpu me-1"></i>${escapeHtml(strategy)}${daysText ? ` <span class="days-badge days-clickable" onclick="showDailyProfit(${server.server_num}, event); event.stopPropagation()">${daysText}</span>` : ''}</div>` : ''}
                             </div>
                             <div class="d-flex align-items-center gap-2">
                                 ${openTrades.length > 0 ? `<span class="open-trades-count" onclick="showOpenTrades(${server.server_num}, event)">${openTrades.length} open</span>` : ''}
