@@ -53,12 +53,12 @@ nano .env
 Edit `.env` file with your FreqTrade server details:
 
 ```env
-# Format: SERVER_N=name|host:port|username|password
+# Format: SERVER_N=name|host:port|username|password|bybit_id (bybit_id is optional)
 
 SERVER_1=Future55|192.168.10.100:4100|freqtrader|your_password
 SERVER_2=Future60|192.168.10.100:4200|freqtrader|your_password
-SERVER_3=Future65|192.168.10.100:4300|freqtrader|your_password
-# ... add all servers
+SERVER_3=Future65|192.168.10.100:4300|freqtrader|your_password|wF99wEEENl2zthLicVGhGg%3D%3D
+# ... add all servers (bybit_id shows avatar linking to Bybit Copy Trade)
 
 # Dashboard Settings
 REFRESH_INTERVAL=60      # Auto-refresh interval in seconds

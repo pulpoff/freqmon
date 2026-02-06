@@ -51,13 +51,14 @@ class Config
             if (preg_match('/^SERVER_(\d+)$/', $key, $matches)) {
                 $serverNum = (int) $matches[1];
                 $parts = explode('|', $value);
-                
+
                 if (count($parts) >= 4) {
                     $this->servers[$serverNum] = [
                         'name' => $parts[0],
                         'host' => $parts[1],
                         'username' => $parts[2],
                         'password' => $parts[3],
+                        'bybit_id' => $parts[4] ?? null,
                     ];
                 }
             } else {
