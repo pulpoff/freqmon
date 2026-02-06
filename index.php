@@ -920,7 +920,7 @@
             const modalTitle = document.getElementById('modalTitle');
             const modalBody = document.getElementById('modalBody');
             
-            modalTitle.textContent = `${server.name} - ${config.strategy || 'N/A'}`;
+            modalTitle.innerHTML = `<i class="bi bi-database me-1"></i>${escapeHtml(server.name)} - <i class="bi bi-cpu me-1"></i>${escapeHtml(config.strategy || 'N/A')}`;
             
             const tradingMode = config.dry_run === false ? '<span class="text-success">Live Trading</span>' : '<span class="text-warning">Dry Run</span>';
             const exchange = config.exchange || 'N/A';
@@ -1648,7 +1648,7 @@
                         <div class="server-header">
                             <div>
                                 <h5 class="server-name">${server.url ? `<a href="${escapeHtml(server.url)}" target="_blank" class="server-icon-link" onclick="event.stopPropagation()"><i class="bi bi-database me-1"></i></a><a href="${escapeHtml(server.url)}" target="_blank" class="server-name-link" onclick="event.stopPropagation()">${escapeHtml(server.name)}</a>` : `<i class="bi bi-database me-1 server-icon"></i>${escapeHtml(server.name)}`}<span class="activity-star" id="activity-star-${server.server_num}"><i class="bi bi-star-fill"></i></span></h5>
-                                ${isOnline ? `<div class="strategy-name strategy-clickable" onclick="showStrategyInfo(${server.server_num}, event)"><i class="bi bi-cpu me-1"></i>${escapeHtml(strategy)}${daysText ? ` <span class="days-badge days-clickable" onclick="showDailyProfit(${server.server_num}, event); event.stopPropagation()">${daysText}</span>` : ''}</div>` : ''}
+                                ${isOnline ? `<div class="strategy-name"><span class="strategy-clickable" onclick="showStrategyInfo(${server.server_num}, event)"><i class="bi bi-cpu me-1"></i>${escapeHtml(strategy)}</span>${daysText ? `<span class="days-badge days-clickable" onclick="showDailyProfit(${server.server_num}, event)">${daysText}</span>` : ''}</div>` : ''}
                             </div>
                             <div class="d-flex align-items-center gap-2">
                                 ${openTrades.length > 0 ? `<span class="open-trades-count" onclick="showOpenTrades(${server.server_num}, event)">${openTrades.length} open</span>` : ''}
