@@ -13,10 +13,12 @@ header('Content-Type: application/json');
 header('Cache-Control: no-cache, must-revalidate');
 
 require_once __DIR__ . '/src/Config.php';
+require_once __DIR__ . '/src/Cache.php';
 require_once __DIR__ . '/src/FreqtradeClient.php';
 require_once __DIR__ . '/src/Dashboard.php';
 
 use FreqtradeDashboard\Config;
+use FreqtradeDashboard\Cache;
 use FreqtradeDashboard\Dashboard;
 use FreqtradeDashboard\FreqtradeClient;
 
@@ -80,29 +82,36 @@ try {
         }
 
         $serverConfig = $servers[$serverNum];
-        $client = new FreqtradeClient(
-            $serverConfig['host'],
-            $serverConfig['username'],
-            $serverConfig['password']
-        );
-        
-        // Get pair candles from FreqTrade
-        $candles = $client->getPairCandles($pair, $timeframe, $limit);
-        
-        if ($candles === null) {
-            $error = $client->getLastError();
-            echo json_encode([
-                'success' => false, 
-                'error' => 'Failed to fetch candles: ' . ($error['message'] ?? 'Unknown error'),
-                'debug' => $error
-            ]);
-            exit;
-        }
-        
-        echo json_encode([
-            'success' => true,
-            'data' => $candles
-        ]);
+
+        // Cache pair candles for 60 seconds (longer TTL since chart data changes less frequently)
+        $cache = Cache::getInstance();
+        $cacheKey = "candles_{$serverNum}_{$pair}_{$timeframe}_{$limit}";
+
+        $result = $cache->remember($cacheKey, function () use ($serverConfig, $pair, $timeframe, $limit) {
+            $client = new FreqtradeClient(
+                $serverConfig['host'],
+                $serverConfig['username'],
+                $serverConfig['password']
+            );
+
+            $candles = $client->getPairCandles($pair, $timeframe, $limit);
+
+            if ($candles === null) {
+                $error = $client->getLastError();
+                return [
+                    'success' => false,
+                    'error' => 'Failed to fetch candles: ' . ($error['message'] ?? 'Unknown error'),
+                    'debug' => $error
+                ];
+            }
+
+            return [
+                'success' => true,
+                'data' => $candles
+            ];
+        }, 60); // 60 seconds TTL for candle data
+
+        echo json_encode($result);
         exit;
     }
     

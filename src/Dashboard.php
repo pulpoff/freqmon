@@ -13,9 +13,27 @@ class Dashboard
     }
 
     /**
-     * Fetch data from all servers
+     * Fetch data from all servers with caching
+     * Uses file-based cache to prevent multiple clients from overwhelming the API
      */
-    public function fetchAllServers(): array
+    public function fetchAllServers(bool $useCache = true): array
+    {
+        if (!$useCache) {
+            return $this->fetchAllServersUncached();
+        }
+
+        $cache = Cache::getInstance();
+        $this->serversData = $cache->remember('dashboard_servers', function () {
+            return $this->fetchAllServersUncached();
+        });
+
+        return $this->serversData;
+    }
+
+    /**
+     * Fetch data from all servers without caching (internal use)
+     */
+    private function fetchAllServersUncached(): array
     {
         $servers = $this->config->getServers();
         $results = [];
@@ -31,12 +49,11 @@ class Dashboard
             $data['name'] = $serverConfig['name'];
             $data['host'] = $serverConfig['host'];
             $data['server_num'] = $num;
-            $data['bybit_id'] = $serverConfig['bybit_id'] ?? null;
+            $data['url'] = $serverConfig['url'] ?? null;
 
             $results[$num] = $data;
         }
 
-        $this->serversData = $results;
         return $results;
     }
 
