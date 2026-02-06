@@ -1023,7 +1023,7 @@
 
                     return `
                         <tr class="${rowClass}">
-                            <td><span class="pair-badge trade-link" onclick="event.stopPropagation(); closeOpenTradesModal(); showTradeChart('${tradeId}')">${arrow} ${getCoinName(t.pair)}${leverage}</span></td>
+                            <td><span class="pair-badge trade-link" onclick="event.stopPropagation(); showTradeChart('${tradeId}')">${arrow} ${getCoinName(t.pair)}${leverage}</span></td>
                             <td class="text-end ${getProfitClass(profitAbs)}">${formatProfit(profitAbs)}</td>
                             <td class="text-end ${getProfitClass(profitPct)}">${profitPct.toFixed(1)}%</td>
                             <td><small style="color: #8b949e;">${t.current_rate?.toFixed(4) || '-'}</small></td>
