@@ -66,20 +66,6 @@
             margin-bottom: 0.5rem;
         }
 
-        .header-icons-col {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin-right: 0.5rem;
-            min-width: 1rem;
-            gap: 0.15rem;
-        }
-
-        .header-icons-col i {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-        }
-
         .server-name {
             font-weight: 600;
             font-size: 0.9rem;
@@ -113,10 +99,6 @@
             opacity: 0.7;
         }
 
-        .info-btn i {
-            color: var(--accent-blue) !important;
-        }
-        
         .info-btn:hover {
             opacity: 1;
         }
@@ -1642,15 +1624,9 @@
                 <div class="card server-card">
                     <div class="card-body p-2">
                         <div class="server-header">
-                            <div class="d-flex">
-                                <div class="header-icons-col">
-                                    <span class="info-btn" onclick="showStrategyInfo(${server.server_num}, event)"><i class="bi bi-info-circle"></i></span>
-                                    ${isOnline ? `<i class="bi bi-cpu"></i>` : ''}
-                                </div>
-                                <div>
-                                    <h5 class="server-name">${server.url ? `<a href="${escapeHtml(server.url)}" target="_blank" class="server-name-link" onclick="event.stopPropagation()">${escapeHtml(server.name)}</a>` : escapeHtml(server.name)}<span class="activity-star" id="activity-star-${server.server_num}"><i class="bi bi-star-fill"></i></span></h5>
-                                    ${isOnline ? `<div class="strategy-name">${escapeHtml(strategy)}${daysText ? ` <span class="days-badge days-clickable" onclick="showDailyProfit(${server.server_num}, event)">${daysText}</span>` : ''}</div>` : ''}
-                                </div>
+                            <div>
+                                <h5 class="server-name"><span class="info-btn me-2" onclick="showStrategyInfo(${server.server_num}, event)"><i class="bi bi-info-circle"></i></span>${server.url ? `<a href="${escapeHtml(server.url)}" target="_blank" class="server-name-link" onclick="event.stopPropagation()">${escapeHtml(server.name)}</a>` : escapeHtml(server.name)}<span class="activity-star" id="activity-star-${server.server_num}"><i class="bi bi-star-fill"></i></span></h5>
+                                ${isOnline ? `<div class="strategy-name"><i class="bi bi-cpu me-1"></i>${escapeHtml(strategy)}${daysText ? ` <span class="days-badge days-clickable" onclick="showDailyProfit(${server.server_num}, event)">${daysText}</span>` : ''}</div>` : ''}
                             </div>
                             <div class="d-flex align-items-center gap-2">
                                 ${openTrades.length > 0 ? `<span class="open-trades-count" onclick="showOpenTrades(${server.server_num}, event)">${openTrades.length} open</span>` : ''}
