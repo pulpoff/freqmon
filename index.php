@@ -84,6 +84,7 @@
             font-size: 0.75rem;
             font-weight: 500;
             margin-top: 0.2rem;
+            padding-left: 0.25rem;
         }
 
         .strategy-clickable {
