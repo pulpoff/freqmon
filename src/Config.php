@@ -59,6 +59,7 @@ class Config
                         'username' => $parts[2],
                         'password' => $parts[3],
                         'bybit_id' => $parts[4] ?? null,
+                        'bybit_avatar' => $parts[5] ?? null,
                     ];
                 }
             } else {

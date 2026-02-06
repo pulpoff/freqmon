@@ -32,6 +32,7 @@ class Dashboard
             $data['host'] = $serverConfig['host'];
             $data['server_num'] = $num;
             $data['bybit_id'] = $serverConfig['bybit_id'] ?? null;
+            $data['bybit_avatar'] = $serverConfig['bybit_avatar'] ?? null;
 
             $results[$num] = $data;
         }
