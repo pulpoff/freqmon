@@ -920,7 +920,7 @@
             const modalTitle = document.getElementById('modalTitle');
             const modalBody = document.getElementById('modalBody');
             
-            modalTitle.textContent = `${server.name} - ${config.strategy || 'N/A'}`;
+            modalTitle.innerHTML = `<i class="bi bi-database me-1"></i>${escapeHtml(server.name)} - <i class="bi bi-cpu me-1"></i>${escapeHtml(config.strategy || 'N/A')}`;
             
             const tradingMode = config.dry_run === false ? '<span class="text-success">Live Trading</span>' : '<span class="text-warning">Dry Run</span>';
             const exchange = config.exchange || 'N/A';
