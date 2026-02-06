@@ -1,0 +1,7 @@
+# Ignore all cache files
+*.cache
+*.cache.tmp.*
+*.lock
+
+# But keep this .gitignore
+!.gitignore
