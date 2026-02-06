@@ -31,6 +31,7 @@ class Dashboard
             $data['name'] = $serverConfig['name'];
             $data['host'] = $serverConfig['host'];
             $data['server_num'] = $num;
+            $data['bybit_id'] = $serverConfig['bybit_id'] ?? null;
 
             $results[$num] = $data;
         }
