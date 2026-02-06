@@ -1647,7 +1647,7 @@
                     <div class="card-body p-2">
                         <div class="server-header">
                             <div>
-                                <h5 class="server-name">${server.url ? `<a href="${escapeHtml(server.url)}" target="_blank" class="server-icon-link" onclick="event.stopPropagation()"><i class="bi bi-hdd me-1"></i></a><a href="${escapeHtml(server.url)}" target="_blank" class="server-name-link" onclick="event.stopPropagation()">${escapeHtml(server.name)}</a>` : `<i class="bi bi-hdd me-1 server-icon"></i>${escapeHtml(server.name)}`}<span class="activity-star" id="activity-star-${server.server_num}"><i class="bi bi-star-fill"></i></span></h5>
+                                <h5 class="server-name">${server.url ? `<a href="${escapeHtml(server.url)}" target="_blank" class="server-icon-link" onclick="event.stopPropagation()"><i class="bi bi-database me-1"></i></a><a href="${escapeHtml(server.url)}" target="_blank" class="server-name-link" onclick="event.stopPropagation()">${escapeHtml(server.name)}</a>` : `<i class="bi bi-database me-1 server-icon"></i>${escapeHtml(server.name)}`}<span class="activity-star" id="activity-star-${server.server_num}"><i class="bi bi-star-fill"></i></span></h5>
                                 ${isOnline ? `<div class="strategy-name strategy-clickable" onclick="showStrategyInfo(${server.server_num}, event)"><i class="bi bi-cpu me-1"></i>${escapeHtml(strategy)}${daysText ? ` <span class="days-badge days-clickable" onclick="showDailyProfit(${server.server_num}, event); event.stopPropagation()">${daysText}</span>` : ''}</div>` : ''}
                             </div>
                             <div class="d-flex align-items-center gap-2">
