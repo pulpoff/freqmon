@@ -58,7 +58,7 @@ class Config
                         'host' => $parts[1],
                         'username' => $parts[2],
                         'password' => $parts[3],
-                        'bybit_id' => $parts[4] ?? null,
+                        'url' => $parts[4] ?? null,
                     ];
                 }
             } else {
