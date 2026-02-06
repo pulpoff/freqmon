@@ -2,7 +2,7 @@
 
 A PHP-based dashboard to monitor multiple FreqTrade trading bot instances from a single interface.
 
-**[Live Demo](https://goldenpaw.top/)** - Demo of my strategy fighting the crypto downfall in a humorous way
+**[Live Demo](https://goldenpaw.top/)** - Demo of my strategy fighting the crypto downfall
 
 ![Dashboard Preview](freqmonscr.png)
 
