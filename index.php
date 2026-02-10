@@ -1998,13 +1998,7 @@
                     scales: {
                         x: {
                             grid: { display: false },
-                            ticks: {
-                                color: '#8b949e',
-                                font: { size: 9 },
-                                maxRotation: 0,
-                                autoSkip: true,
-                                maxTicksLimit: 10
-                            }
+                            ticks: { display: false }
                         },
                         y: {
                             position: 'left',
