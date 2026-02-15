@@ -300,31 +300,10 @@
             font-size: 0.8rem;
         }
 
-        .badge-online {
-            background-color: rgba(63, 185, 80, 0.2);
-            color: var(--accent-green);
-            border: 1px solid var(--accent-green);
-        }
-        
-        .badge-offline {
-            background-color: rgba(248, 81, 73, 0.2);
-            color: var(--accent-red);
-            border: 1px solid var(--accent-red);
-        }
-        
-        .badge-live {
-            background-color: rgba(63, 185, 80, 0.2);
-            color: var(--accent-green);
-            border: 1px solid var(--accent-green);
-            font-size: 0.72rem;
-            padding: 0.25em 0.55em;
-        }
-        
-        .badge-dry {
-            background-color: rgba(210, 153, 34, 0.2);
-            color: var(--accent-yellow);
-            border: 1px solid var(--accent-yellow);
-        }
+        .badge-online, .badge-live { background-color: rgba(63, 185, 80, 0.2); color: var(--accent-green); border: 1px solid var(--accent-green); }
+        .badge-offline { background-color: rgba(248, 81, 73, 0.2); color: var(--accent-red); border: 1px solid var(--accent-red); }
+        .badge-live { font-size: 0.72rem; padding: 0.25em 0.55em; }
+        .badge-dry { background-color: rgba(210, 153, 34, 0.2); color: var(--accent-yellow); border: 1px solid var(--accent-yellow); }
         
         .mini-stats {
             display: grid;
@@ -354,10 +333,8 @@
             color: #ffffff;
         }
         
-        .text-profit { color: var(--accent-green) !important; }
-        .text-loss { color: var(--accent-red) !important; }
-        .text-success { color: var(--accent-green) !important; }
-        .text-danger { color: var(--accent-red) !important; }
+        .text-profit, .text-success { color: var(--accent-green) !important; }
+        .text-loss, .text-danger { color: var(--accent-red) !important; }
         .text-info { color: var(--accent-blue) !important; }
         
         .chart-container {
@@ -389,48 +366,15 @@
             background: var(--bg-tertiary);
         }
         
-        .mini-table tbody tr.row-profit {
-            background: rgba(63, 185, 80, 0.15);
-        }
-        
-        .mini-table tbody tr.row-loss {
-            background: rgba(248, 81, 73, 0.15);
-        }
-        
-        .mini-table tbody tr.row-profit:hover {
-            background: rgba(63, 185, 80, 0.25);
-        }
-        
-        .mini-table tbody tr.row-loss:hover {
-            background: rgba(248, 81, 73, 0.25);
-        }
-
-        .coin-row {
-            cursor: pointer;
-        }
-
-        .coin-row td:first-child {
-            font-family: monospace;
-            font-size: 0.7rem;
-        }
-
-        .pair-badge {
-            background: var(--bg-tertiary);
-            padding: 0.1rem 0.3rem;
-            border-radius: 3px;
-            font-family: monospace;
-            font-size: 0.6rem;
-            color: #ffffff;
-        }
-        
-        .trade-link {
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        
-        .trade-link:hover {
-            background: var(--accent-blue);
-        }
+        .mini-table tbody tr.row-profit { background: rgba(63, 185, 80, 0.15); }
+        .mini-table tbody tr.row-loss { background: rgba(248, 81, 73, 0.15); }
+        .mini-table tbody tr.row-profit:hover { background: rgba(63, 185, 80, 0.25); }
+        .mini-table tbody tr.row-loss:hover { background: rgba(248, 81, 73, 0.25); }
+        .coin-row { cursor: pointer; }
+        .coin-row td:first-child { font-family: monospace; font-size: 0.7rem; }
+        .pair-badge { background: var(--bg-tertiary); padding: 0.1rem 0.3rem; border-radius: 3px; font-family: monospace; font-size: 0.6rem; color: #fff; }
+        .trade-link { cursor: pointer; transition: background 0.2s; }
+        .trade-link:hover { background: var(--accent-blue); }
         
         .section-title {
             font-size: 0.6rem;
@@ -631,53 +575,13 @@
     </div>
 
     <style>
-        .password-modal-content {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 1.5rem;
-            width: 280px;
-            text-align: center;
-        }
-        .password-title {
-            font-size: 0.9rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            color: #fff;
-        }
-        .password-input {
-            width: 100%;
-            padding: 0.5rem;
-            font-size: 0.8rem;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-            margin-bottom: 0.5rem;
-        }
-        .password-input:focus {
-            outline: none;
-            border-color: var(--accent-blue);
-        }
-        .password-error {
-            color: var(--accent-red);
-            font-size: 0.7rem;
-            min-height: 1rem;
-            margin-bottom: 0.5rem;
-        }
-        .password-submit {
-            width: 100%;
-            padding: 0.5rem;
-            font-size: 0.8rem;
-            border: none;
-            border-radius: 4px;
-            background: var(--accent-blue);
-            color: #fff;
-            cursor: pointer;
-        }
-        .password-submit:hover {
-            opacity: 0.9;
-        }
+        .password-modal-content { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 1.5rem; width: 280px; text-align: center; }
+        .password-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 1rem; color: #fff; }
+        .password-input { width: 100%; padding: 0.5rem; font-size: 0.8rem; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-tertiary); color: var(--text-primary); margin-bottom: 0.5rem; }
+        .password-input:focus { outline: none; border-color: var(--accent-blue); }
+        .password-error { color: var(--accent-red); font-size: 0.7rem; min-height: 1rem; margin-bottom: 0.5rem; }
+        .password-submit { width: 100%; padding: 0.5rem; font-size: 0.8rem; border: none; border-radius: 4px; background: var(--accent-blue); color: #fff; cursor: pointer; }
+        .password-submit:hover { opacity: 0.9; }
     </style>
 
     <!-- Loading Modal -->
@@ -726,59 +630,18 @@
     </div>
 
     <style>
-        .open-trades-modal-content {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            max-width: 400px;
-            width: 92%;
-            max-height: 85vh;
-            overflow-y: auto;
-        }
-    </style>
-
-    <style>
-        .loading-modal-content {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 2rem 3rem;
-            text-align: center;
-        }
-        .loading-spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid var(--border-color);
-            border-top-color: var(--accent-blue);
-            border-radius: 50%;
-            margin: 0 auto 1rem;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        .loading-text {
-            color: var(--text-primary);
-            font-size: 1rem;
-            margin-bottom: 0.5rem;
-        }
-        .loading-progress {
-            color: var(--text-secondary);
-            font-size: 0.8rem;
-        }
+        .open-trades-modal-content { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; max-width: 400px; width: 92%; max-height: 85vh; overflow-y: auto; }
+        .loading-modal-content { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 2rem 3rem; text-align: center; }
+        .loading-spinner { width: 50px; height: 50px; border: 3px solid var(--border-color); border-top-color: var(--accent-blue); border-radius: 50%; margin: 0 auto 1rem; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .loading-text { color: var(--text-primary); font-size: 1rem; margin-bottom: 0.5rem; }
+        .loading-progress { color: var(--text-secondary); font-size: 0.8rem; }
     </style>
 
     <script>
-        const charts = {};
-        let refreshInterval;
-        const REFRESH_SECONDS = 60;
-        let serverData = {}; // Store server data globally for modal
-        const tradeCache = {}; // Store trade data for chart modal
-        let previousServerState = {}; // Store previous state for comparison
-        let soundEnabled = true; // Default to on, updated from settings
-        let coinsEnabled = false; // Default to off, updated from settings
-        let configDays = 20; // Default days to show in charts, updated from settings
-        let notifyDuration = 10; // Default seconds to show activity star, updated from settings
+        const charts = {}, tradeCache = {}, REFRESH_SECONDS = 60;
+        let refreshInterval, serverData = {}, previousServerState = {};
+        let soundEnabled = true, coinsEnabled = false, configDays = 20, notifyDuration = 10;
 
         // Chime sound using Web Audio API
         let audioContext = null;
@@ -985,76 +848,63 @@
             // Build summary line like: Avg Profit 1.624% (∑ 9.747%) in 6 Trades, with an average duration of 0:19:12
             const summaryLine = `Avg Profit ${avgProfitPerTrade} (∑ ${totalProfitPct}) in ${tradeCount} Trades, avg duration ${avgDuration}`;
 
-            modalBody.innerHTML = `
-                <div class="info-summary">${summaryLine}</div>
-                <div class="info-row">
-                    <span class="info-label">Mode</span>
-                    <span class="info-value">${tradingMode}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Exchange</span>
-                    <span class="info-value">${escapeHtml(exchange)}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Trading Type</span>
-                    <span class="info-value">${escapeHtml(tradingType)}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Stake</span>
-                    <span class="info-value">${escapeHtml(String(stakeAmount))} ${escapeHtml(stakeCurrency)}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Total Profit</span>
-                    <span class="info-value ${profit.profit_closed_coin >= 0 ? 'text-success' : 'text-danger'}">${totalProfit}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Avg Profit %</span>
-                    <span class="info-value">${avgProfit}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Total Trades</span>
-                    <span class="info-value">${tradeCount}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Win / Loss</span>
-                    <span class="info-value">${profit.winning_trades || 0} / ${profit.losing_trades || 0}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Win Rate</span>
-                    <span class="info-value">${winRate}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Best Pair</span>
-                    <span class="info-value">${escapeHtml(bestPair)}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Avg Duration</span>
-                    <span class="info-value">${escapeHtml(avgDuration)}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Trading Volume</span>
-                    <span class="info-value">${tradingVolume}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">First Trade</span>
-                    <span class="info-value">${escapeHtml(firstTrade)}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Latest Trade</span>
-                    <span class="info-value">${escapeHtml(latestTrade)}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Balance</span>
-                    <span class="info-value">${(balance.total || 0).toFixed(2)} ${escapeHtml(stakeCurrency)}</span>
-                </div>
-            `;
+            modalBody.innerHTML = `<div class="info-summary">${summaryLine}</div>` + infoRows([
+                ['Mode', tradingMode],
+                ['Exchange', escapeHtml(exchange)],
+                ['Trading Type', escapeHtml(tradingType)],
+                ['Stake', `${escapeHtml(String(stakeAmount))} ${escapeHtml(stakeCurrency)}`],
+                ['Total Profit', totalProfit, profit.profit_closed_coin >= 0 ? 'text-success' : 'text-danger'],
+                ['Avg Profit %', avgProfit],
+                ['Total Trades', tradeCount],
+                ['Win / Loss', `${profit.winning_trades || 0} / ${profit.losing_trades || 0}`],
+                ['Win Rate', winRate],
+                ['Best Pair', escapeHtml(bestPair)],
+                ['Avg Duration', escapeHtml(avgDuration)],
+                ['Trading Volume', tradingVolume],
+                ['First Trade', escapeHtml(firstTrade)],
+                ['Latest Trade', escapeHtml(latestTrade)],
+                ['Balance', `${(balance.total || 0).toFixed(2)} ${escapeHtml(stakeCurrency)}`]
+            ]);
 
             document.getElementById('strategyModal').classList.add('show');
         }
 
-        function closeModal(event) {
+        // Generic modal close handler
+        function closeModalById(id, event) {
             if (event && event.target !== event.currentTarget) return;
-            document.getElementById('strategyModal').classList.remove('show');
+            document.getElementById(id).classList.remove('show');
+            if (id === 'tradeModal' && tradeChart) { tradeChart.destroy(); tradeChart = null; }
+        }
+        function closeModal(e) { closeModalById('strategyModal', e); }
+        function closeTradeModal(e) { closeModalById('tradeModal', e); }
+        function closeOpenTradesModal(e) { closeModalById('openTradesModal', e); }
+        function closeDailyProfitModal(e) { closeModalById('dailyProfitModal', e); }
+        function closeTradedCoinsModal(e) { closeModalById('tradedCoinsModal', e); }
+
+        // Helper: parse date with UTC handling
+        function parseUTCDate(dateStr) {
+            if (!dateStr) return new Date();
+            let str = dateStr.replace(' ', 'T');
+            if (!str.includes('Z') && !str.includes('+')) str += 'Z';
+            return new Date(str);
+        }
+
+        // Helper: generate info rows HTML
+        function infoRows(rows) {
+            return rows.map(([label, value, cls]) =>
+                `<div class="info-row"><span class="info-label">${label}</span><span class="info-value${cls ? ' ' + cls : ''}">${value}</span></div>`
+            ).join('');
+        }
+
+        // Helper: generate trade detail HTML
+        function tradeDetail(label, value) {
+            return `<div class="trade-detail"><div class="trade-detail-label">${label}</div><div class="trade-detail-value">${value}</div></div>`;
+        }
+
+        // Helper: generate table HTML
+        function miniTable(headers, rows) {
+            const ths = headers.map(h => `<th${h.align ? ` class="text-${h.align}"` : ''}>${h.text}</th>`).join('');
+            return `<div class="trades-scroll"><table class="table table-dark mini-table mb-0"><thead><tr>${ths}</tr></thead><tbody>${rows}</tbody></table></div>`;
         }
 
         function showOpenTrades(serverNum, event) {
@@ -1081,12 +931,7 @@
                     const leverage = lev > 1 ? ` x${lev % 1 === 0 ? lev : lev.toFixed(1)}` : '';
                     const profitPct = t.profit_pct || 0;
                     const profitAbs = t.profit_abs || 0;
-                    const openDuration = (() => {
-                        if (!t.open_date) return '-';
-                        let str = t.open_date.replace(' ', 'T');
-                        if (!str.includes('Z') && !str.includes('+')) str += 'Z';
-                        return Math.round((new Date() - new Date(str)) / 60000) + ' min';
-                    })();
+                    const openDuration = t.open_date ? Math.round((new Date() - parseUTCDate(t.open_date)) / 60000) + ' min' : '-';
                     const rowClass = profitPct >= 0 ? 'row-profit' : 'row-loss';
 
                     // Store in tradeCache for chart viewing
@@ -1127,11 +972,6 @@
             }
 
             document.getElementById('openTradesModal').classList.add('show');
-        }
-
-        function closeOpenTradesModal(event) {
-            if (event && event.target !== event.currentTarget) return;
-            document.getElementById('openTradesModal').classList.remove('show');
         }
 
         function showDailyProfit(serverNum, event) {
@@ -1222,11 +1062,6 @@
             document.getElementById('dailyProfitModal').classList.add('show');
         }
 
-        function closeDailyProfitModal(event) {
-            if (event && event.target !== event.currentTarget) return;
-            document.getElementById('dailyProfitModal').classList.remove('show');
-        }
-
         function showTradedCoins(serverNum, event) {
             event.stopPropagation();
             const server = serverData[serverNum];
@@ -1283,36 +1118,15 @@
             document.getElementById('tradedCoinsModal').classList.add('show');
         }
 
-        function closeTradedCoinsModal(event) {
-            if (event && event.target !== event.currentTarget) return;
-            document.getElementById('tradedCoinsModal').classList.remove('show');
-        }
-
         // Close modal on ESC key
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
-                closeModal();
-                closeTradeModal();
-                closeOpenTradesModal();
-                closeDailyProfitModal();
-                closeTradedCoinsModal();
+                closeModal(); closeTradeModal(); closeOpenTradesModal(); closeDailyProfitModal(); closeTradedCoinsModal();
             }
         });
-        
+
         let tradeChart = null;
 
-        function closeTradeModal(event) {
-            if (event) {
-                event.stopPropagation();
-                if (event.target !== event.currentTarget) return;
-            }
-            document.getElementById('tradeModal').classList.remove('show');
-            if (tradeChart) {
-                tradeChart.destroy();
-                tradeChart = null;
-            }
-        }
-        
         async function showTradeChart(tradeId) {
             const trade = tradeCache[tradeId];
             if (!trade) {
@@ -1329,21 +1143,8 @@
             document.getElementById('tradeModalBody').innerHTML = '<div class="trade-loading"><i class="bi bi-hourglass-split"></i> Loading chart...</div>';
             document.getElementById('tradeModal').classList.add('show');
             try {
-                // Parse dates - ensure consistent timezone handling
-                // FreqTrade typically returns dates in UTC, but format might vary
-                const parseDate = (dateStr) => {
-                    if (!dateStr) return new Date();
-                    // Handle both "2026-01-21 14:30:03" and "2026-01-21T14:30:03" formats
-                    let str = dateStr.replace(' ', 'T');
-                    // If no timezone specified, assume UTC
-                    if (!str.includes('Z') && !str.includes('+')) {
-                        str += 'Z';
-                    }
-                    return new Date(str);
-                };
-
-                const openDate = parseDate(trade.open_date);
-                const closeDate = isOpenTrade ? new Date() : parseDate(trade.close_date);
+                const openDate = parseUTCDate(trade.open_date);
+                const closeDate = isOpenTrade ? new Date() : parseUTCDate(trade.close_date);
                 const duration = closeDate - openDate;
                 
                 // Determine timeframe based on trade duration
@@ -1433,70 +1234,25 @@
 
                 const profitColor = (trade.profit_abs || 0) >= 0 ? '#3fb950' : '#f85149';
 
-                // Different details for open vs closed trades
-                const detailsHtml = isOpenTrade ? `
-                    <div class="trade-details">
-                        <div class="trade-detail">
-                            <div class="trade-detail-label">Entry Time</div>
-                            <div class="trade-detail-value">${formatDateTime(openDate)}</div>
-                        </div>
-                        <div class="trade-detail">
-                            <div class="trade-detail-label">Duration</div>
-                            <div class="trade-detail-value">${Math.round(duration / 60000)} min</div>
-                        </div>
-                        <div class="trade-detail">
-                            <div class="trade-detail-label">Entry Price</div>
-                            <div class="trade-detail-value">${trade.open_rate?.toFixed(6) || 'N/A'}</div>
-                        </div>
-                        <div class="trade-detail">
-                            <div class="trade-detail-label">Current Price</div>
-                            <div class="trade-detail-value">${trade.current_rate?.toFixed(6) || 'N/A'}</div>
-                        </div>
-                        <div class="trade-detail">
-                            <div class="trade-detail-label">Unrealized P/L</div>
-                            <div class="trade-detail-value" style="color: ${profitColor}">${formatProfit(trade.profit_abs)} (${(trade.profit_pct || 0).toFixed(2)}%)</div>
-                        </div>
-                        <div class="trade-detail">
-                            <div class="trade-detail-label">Stake</div>
-                            <div class="trade-detail-value">${trade.stake_amount?.toFixed(2) || 'N/A'}</div>
-                        </div>
-                    </div>
-                ` : `
-                    <div class="trade-details">
-                        <div class="trade-detail">
-                            <div class="trade-detail-label">Entry Time</div>
-                            <div class="trade-detail-value">${formatDateTime(openDate)}</div>
-                        </div>
-                        <div class="trade-detail">
-                            <div class="trade-detail-label">Exit Time</div>
-                            <div class="trade-detail-value">${formatDateTime(closeDate)}</div>
-                        </div>
-                        <div class="trade-detail">
-                            <div class="trade-detail-label">Entry Price</div>
-                            <div class="trade-detail-value">${trade.open_rate?.toFixed(6) || 'N/A'}</div>
-                        </div>
-                        <div class="trade-detail">
-                            <div class="trade-detail-label">Exit Price</div>
-                            <div class="trade-detail-value">${trade.close_rate?.toFixed(6) || 'N/A'}</div>
-                        </div>
-                        <div class="trade-detail">
-                            <div class="trade-detail-label">Profit</div>
-                            <div class="trade-detail-value" style="color: ${profitColor}">${formatProfit(trade.profit_abs)} (${(trade.profit_pct || 0).toFixed(2)}%)</div>
-                        </div>
-                        <div class="trade-detail">
-                            <div class="trade-detail-label">Duration</div>
-                            <div class="trade-detail-value">${trade.trade_duration || Math.round(duration / 60000) + ' min'}</div>
-                        </div>
-                        <div class="trade-detail">
-                            <div class="trade-detail-label">Stake</div>
-                            <div class="trade-detail-value">${trade.stake_amount?.toFixed(2) || 'N/A'}</div>
-                        </div>
-                        <div class="trade-detail">
-                            <div class="trade-detail-label">Exit Reason</div>
-                            <div class="trade-detail-value">${escapeHtml(trade.exit_reason || 'N/A')}</div>
-                        </div>
-                    </div>
-                `;
+                // Build trade details
+                const profitVal = `<span style="color:${profitColor}">${formatProfit(trade.profit_abs)} (${(trade.profit_pct || 0).toFixed(2)}%)</span>`;
+                const detailsHtml = '<div class="trade-details">' + (isOpenTrade ? [
+                    tradeDetail('Entry Time', formatDateTime(openDate)),
+                    tradeDetail('Duration', Math.round(duration / 60000) + ' min'),
+                    tradeDetail('Entry Price', trade.open_rate?.toFixed(6) || 'N/A'),
+                    tradeDetail('Current Price', trade.current_rate?.toFixed(6) || 'N/A'),
+                    tradeDetail('Unrealized P/L', profitVal),
+                    tradeDetail('Stake', trade.stake_amount?.toFixed(2) || 'N/A')
+                ] : [
+                    tradeDetail('Entry Time', formatDateTime(openDate)),
+                    tradeDetail('Exit Time', formatDateTime(closeDate)),
+                    tradeDetail('Entry Price', trade.open_rate?.toFixed(6) || 'N/A'),
+                    tradeDetail('Exit Price', trade.close_rate?.toFixed(6) || 'N/A'),
+                    tradeDetail('Profit', profitVal),
+                    tradeDetail('Duration', trade.trade_duration || Math.round(duration / 60000) + ' min'),
+                    tradeDetail('Stake', trade.stake_amount?.toFixed(2) || 'N/A'),
+                    tradeDetail('Exit Reason', escapeHtml(trade.exit_reason || 'N/A'))
+                ]).join('') + '</div>';
 
                 document.getElementById('tradeModalBody').innerHTML = `
                     <div class="trade-chart-container">
@@ -1573,49 +1329,19 @@
 
             } catch (error) {
                 console.error('Failed to load chart:', error);
-                // Use trade dates directly in error display
-                const errorOpenDate = trade.open_date || 'N/A';
-                const errorCloseDate = trade.close_date || 'N/A';
-                const errorDuration = trade.trade_duration || 'N/A';
+                const pColor = (trade.profit_abs || 0) >= 0 ? '#3fb950' : '#f85149';
                 document.getElementById('tradeModalBody').innerHTML = `
-                    <div class="trade-loading" style="color: var(--accent-red);">
-                        <i class="bi bi-exclamation-triangle"></i> Could not load chart data: ${escapeHtml(error.message || 'Unknown error')}
-                    </div>
-                    <div class="trade-details">
-                        <div class="trade-detail">
-                            <div class="trade-detail-label">Entry Time</div>
-                            <div class="trade-detail-value">${escapeHtml(errorOpenDate)}</div>
-                        </div>
-                        <div class="trade-detail">
-                            <div class="trade-detail-label">Exit Time</div>
-                            <div class="trade-detail-value">${escapeHtml(errorCloseDate)}</div>
-                        </div>
-                        <div class="trade-detail">
-                            <div class="trade-detail-label">Entry Price</div>
-                            <div class="trade-detail-value">${trade.open_rate?.toFixed(6) || 'N/A'}</div>
-                        </div>
-                        <div class="trade-detail">
-                            <div class="trade-detail-label">Exit Price</div>
-                            <div class="trade-detail-value">${trade.close_rate?.toFixed(6) || 'N/A'}</div>
-                        </div>
-                        <div class="trade-detail">
-                            <div class="trade-detail-label">Profit</div>
-                            <div class="trade-detail-value" style="color: ${(trade.profit_abs || 0) >= 0 ? '#3fb950' : '#f85149'}">${formatProfit(trade.profit_abs)} (${(trade.profit_pct || 0).toFixed(2)}%)</div>
-                        </div>
-                        <div class="trade-detail">
-                            <div class="trade-detail-label">Duration</div>
-                            <div class="trade-detail-value">${errorDuration}</div>
-                        </div>
-                        <div class="trade-detail">
-                            <div class="trade-detail-label">Stake</div>
-                            <div class="trade-detail-value">${trade.stake_amount?.toFixed(2) || 'N/A'}</div>
-                        </div>
-                        <div class="trade-detail">
-                            <div class="trade-detail-label">Exit Reason</div>
-                            <div class="trade-detail-value">${escapeHtml(trade.exit_reason || 'N/A')}</div>
-                        </div>
-                    </div>
-                `;
+                    <div class="trade-loading" style="color: var(--accent-red);"><i class="bi bi-exclamation-triangle"></i> Could not load chart data: ${escapeHtml(error.message || 'Unknown error')}</div>
+                    <div class="trade-details">${[
+                        tradeDetail('Entry Time', escapeHtml(trade.open_date || 'N/A')),
+                        tradeDetail('Exit Time', escapeHtml(trade.close_date || 'N/A')),
+                        tradeDetail('Entry Price', trade.open_rate?.toFixed(6) || 'N/A'),
+                        tradeDetail('Exit Price', trade.close_rate?.toFixed(6) || 'N/A'),
+                        tradeDetail('Profit', `<span style="color:${pColor}">${formatProfit(trade.profit_abs)} (${(trade.profit_pct || 0).toFixed(2)}%)</span>`),
+                        tradeDetail('Duration', trade.trade_duration || 'N/A'),
+                        tradeDetail('Stake', trade.stake_amount?.toFixed(2) || 'N/A'),
+                        tradeDetail('Exit Reason', escapeHtml(trade.exit_reason || 'N/A'))
+                    ].join('')}</div>`;
             }
         }
         
@@ -1640,17 +1366,8 @@
         
         function formatCompactDate(dateStr) {
             if (!dateStr) return '-';
-            // FreqTrade returns dates in UTC - ensure proper parsing
-            let str = dateStr.replace(' ', 'T');
-            if (!str.includes('Z') && !str.includes('+')) {
-                str += 'Z';  // Append Z to indicate UTC
-            }
-            const d = new Date(str);
-            const day = d.getDate().toString().padStart(2, '0');
-            const mon = (d.getMonth() + 1).toString().padStart(2, '0');
-            const hrs = d.getHours().toString().padStart(2, '0');
-            const min = d.getMinutes().toString().padStart(2, '0');
-            return `${day}.${mon} ${hrs}:${min}`;
+            const d = parseUTCDate(dateStr);
+            return `${String(d.getDate()).padStart(2,'0')}.${String(d.getMonth()+1).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
         }
 
         function formatDateTime(d) {
@@ -1824,15 +1541,7 @@
                                 <tbody>
                                     ${closedTrades.map(t => {
                                         const rowClass = (t.profit_abs || 0) >= 0 ? 'row-profit' : 'row-loss';
-                                        const tradeDuration = (() => {
-                                            if (t.trade_duration) return t.trade_duration;
-                                            if (!t.open_date || !t.close_date) return '-';
-                                            let openStr = t.open_date.replace(' ', 'T');
-                                            if (!openStr.includes('Z') && !openStr.includes('+')) openStr += 'Z';
-                                            let closeStr = t.close_date.replace(' ', 'T');
-                                            if (!closeStr.includes('Z') && !closeStr.includes('+')) closeStr += 'Z';
-                                            return Math.round((new Date(closeStr) - new Date(openStr)) / 60000) + ' min';
-                                        })();
+                                        const tradeDuration = t.trade_duration || (!t.open_date || !t.close_date ? '-' : Math.round((parseUTCDate(t.close_date) - parseUTCDate(t.open_date)) / 60000) + ' min');
                                         const lev = t.leverage && t.leverage > 1 ? parseFloat(t.leverage) : 0;
                                         const leverage = lev > 1 ? ` x${lev % 1 === 0 ? lev : lev.toFixed(2)}` : '';
                                         const arrow = t.is_short ? '<span style="font-size:1.3em;color:#d29922">↓</span>' : '<span style="font-size:1.3em;color:#58a6ff">↑</span>';
@@ -2398,105 +2107,22 @@
     </footer>
 
     <style>
-        .site-footer {
-            text-align: center;
-            padding: 1rem 0;
-            margin-top: 1rem;
-        }
-        .site-footer a {
-            color: var(--text-secondary);
-            font-size: 0.7rem;
-            text-decoration: none;
-        }
-        .site-footer a:hover {
-            color: var(--accent-blue);
-        }
-
-        /* Notification styles */
-        .notification-container {
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            z-index: 2000;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            max-width: 350px;
-        }
-
-        .notification {
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px 16px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-            animation: slideIn 0.3s ease-out;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .notification.hiding {
-            animation: slideOut 0.3s ease-in forwards;
-        }
-
-        .notification-icon {
-            font-size: 1.2rem;
-        }
-
-        .notification-icon.profit {
-            color: var(--accent-green);
-        }
-
-        .notification-icon.loss {
-            color: var(--accent-red);
-        }
-
-        .notification-icon.open {
-            color: var(--accent-blue);
-        }
-
-        .notification-content {
-            flex: 1;
-        }
-
-        .notification-title {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            margin-bottom: 2px;
-        }
-
-        .notification-message {
-            font-size: 0.85rem;
-            color: var(--text-primary);
-            font-weight: 500;
-        }
-
-        .notification-profit {
-            font-weight: 600;
-        }
-
-        @keyframes slideIn {
-            from {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-            to {
-                transform: translateX(0);
-                opacity: 1;
-            }
-        }
-
-        @keyframes slideOut {
-            from {
-                transform: translateX(0);
-                opacity: 1;
-            }
-            to {
-                transform: translateX(100%);
-                opacity: 0;
-            }
-        }
+        .site-footer { text-align: center; padding: 1rem 0; margin-top: 1rem; }
+        .site-footer a { color: var(--text-secondary); font-size: 0.7rem; text-decoration: none; }
+        .site-footer a:hover { color: var(--accent-blue); }
+        .notification-container { position: fixed; top: 10px; right: 10px; z-index: 2000; display: flex; flex-direction: column; gap: 8px; max-width: 350px; }
+        .notification { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); animation: slideIn 0.3s ease-out; display: flex; align-items: center; gap: 10px; }
+        .notification.hiding { animation: slideOut 0.3s ease-in forwards; }
+        .notification-icon { font-size: 1.2rem; }
+        .notification-icon.profit { color: var(--accent-green); }
+        .notification-icon.loss { color: var(--accent-red); }
+        .notification-icon.open { color: var(--accent-blue); }
+        .notification-content { flex: 1; }
+        .notification-title { font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 2px; }
+        .notification-message { font-size: 0.85rem; color: var(--text-primary); font-weight: 500; }
+        .notification-profit { font-weight: 600; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
     </style>
 </body>
 </html>
