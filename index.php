@@ -455,7 +455,7 @@
         }
 
         .coin-icon-btn {
-            color: #ffd700;
+            color: #8b949e;
             font-size: 1rem;
             cursor: pointer;
             transition: color 0.2s, transform 0.2s;
@@ -463,7 +463,7 @@
         }
 
         .coin-icon-btn:hover {
-            color: #ffed4a;
+            color: #ffd700;
             transform: scale(1.15);
         }
 
