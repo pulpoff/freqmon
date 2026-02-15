@@ -1326,8 +1326,12 @@
                 const config = server.config || {};
                 const timeframe = config.timeframe || '5m';
 
+                // Calculate candle limit for 24 hours based on timeframe
+                const candlesPerHour = { '1m': 60, '3m': 20, '5m': 12, '15m': 4, '30m': 2, '1h': 1, '2h': 0.5, '4h': 0.25 };
+                const limit = Math.ceil((candlesPerHour[timeframe] || 12) * 24);
+
                 // Fetch candle data with entry signals from Freqtrade API
-                const apiUrl = `api.php?action=pair_candles&server=${serverNum}&pair=${encodeURIComponent(pair)}&timeframe=${timeframe}&limit=500`;
+                const apiUrl = `api.php?action=pair_candles&server=${serverNum}&pair=${encodeURIComponent(pair)}&timeframe=${timeframe}&limit=${limit}`;
                 const response = await fetch(apiUrl);
                 const result = await response.json();
 
