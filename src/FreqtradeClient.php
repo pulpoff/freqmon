@@ -248,6 +248,7 @@ class FreqtradeClient
             'balance' => null,
             'config' => null,
             'count' => null,
+            'performance' => null,
             'error' => null,
         ];
 
@@ -278,6 +279,7 @@ class FreqtradeClient
 
         $data['status'] = $this->getStatus();
         $data['balance'] = $this->getBalance();
+        $data['performance'] = $this->getPerformance();
 
         // Filter config to only essential fields
         $fullConfig = $this->getConfig();
