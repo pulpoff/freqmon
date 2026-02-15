@@ -1359,15 +1359,8 @@
                     }
                 }
 
-                if (!Array.isArray(klines) || klines.length === 0) {
-                    throw new Error('No chart data available from Binance');
-                }
-
-                // Parse Binance klines data
-                const labels = klines.map(k => new Date(k[0]));
-                const prices = labels.map((t, i) => ({ x: t, y: parseFloat(klines[i][4]) }));
-
-                // Try to fetch entry signals from Freqtrade (optional)
+                // Try to fetch data from Freqtrade (for entry signals and as fallback for price)
+                let freqtradeData = null;
                 const entrySignals = [];
                 try {
                     const config = server.config || {};
@@ -1377,8 +1370,9 @@
                     const result = await response.json();
 
                     if (result.success && result.data) {
-                        const columns = result.data.columns || [];
-                        const data = result.data.data || [];
+                        freqtradeData = result.data;
+                        const columns = freqtradeData.columns || [];
+                        const data = freqtradeData.data || [];
                         const dateIdx = columns.indexOf('date');
                         const closeIdx = columns.indexOf('close');
                         const enterLongIdx = columns.indexOf('enter_long');
@@ -1397,7 +1391,36 @@
                         }
                     }
                 } catch (e) {
-                    console.log('Failed to fetch entry signals:', e);
+                    console.log('Failed to fetch Freqtrade data:', e);
+                }
+
+                // Parse price data - prefer Binance, fallback to Freqtrade
+                let labels = [];
+                let prices = [];
+
+                if (Array.isArray(klines) && klines.length > 0) {
+                    // Use Binance data
+                    labels = klines.map(k => new Date(k[0]));
+                    prices = labels.map((t, i) => ({ x: t, y: parseFloat(klines[i][4]) }));
+                } else if (freqtradeData) {
+                    // Fallback to Freqtrade data
+                    const columns = freqtradeData.columns || [];
+                    const data = freqtradeData.data || [];
+                    const dateIdx = columns.indexOf('date');
+                    const closeIdx = columns.indexOf('close');
+
+                    if (dateIdx !== -1 && closeIdx !== -1) {
+                        data.forEach(row => {
+                            const timestamp = new Date(row[dateIdx]);
+                            if (timestamp < cutoff24h) return;
+                            labels.push(timestamp);
+                            prices.push({ x: timestamp, y: parseFloat(row[closeIdx]) });
+                        });
+                    }
+                }
+
+                if (prices.length === 0) {
+                    throw new Error('No candle data available');
                 }
 
                 // Get executed trades for this pair - only last 24 hours
