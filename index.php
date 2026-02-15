@@ -1319,92 +1319,85 @@
             if (!server) return;
 
             document.getElementById('coinChartModalTitle').innerHTML = `<i class="bi bi-coin me-1" style="color: #c0c0c0;"></i>${escapeHtml(pair)}`;
-            document.getElementById('coinChartModalBody').innerHTML = '<div class="trade-loading"><i class="bi bi-hourglass-split"></i> Loading chart...</div>';
+            document.getElementById('coinChartModalBody').innerHTML = '<div class="trade-loading"><i class="bi bi-hourglass-split"></i> Loading chart with entry signals...</div>';
             document.getElementById('coinChartModal').classList.add('show');
 
             try {
-                // Get all closed trades for this pair from the server
-                const allTrades = (server.trades?.trades || []).filter(t => !t.is_open && t.pair === pair);
+                // Get strategy timeframe from config, default to 5m
+                const config = server.config || {};
+                const timeframe = config.timeframe || '5m';
 
-                // Find entry points (open_date and open_rate)
-                const entryPoints = allTrades.map(t => {
+                // Fetch candle data with entry signals from Freqtrade API
+                const apiUrl = `api.php?action=pair_candles&server=${serverNum}&pair=${encodeURIComponent(pair)}&timeframe=${timeframe}&limit=500`;
+                const response = await fetch(apiUrl);
+                const result = await response.json();
+
+                if (!result.success || !result.data) {
+                    throw new Error(result.error || 'Failed to fetch candle data');
+                }
+
+                const candleData = result.data;
+                const columns = candleData.columns || [];
+                const data = candleData.data || [];
+
+                if (data.length === 0) {
+                    throw new Error('No candle data available');
+                }
+
+                // Find column indices
+                const dateIdx = columns.indexOf('date');
+                const closeIdx = columns.indexOf('close');
+                const enterLongIdx = columns.indexOf('enter_long');
+                const enterShortIdx = columns.indexOf('enter_short');
+
+                if (dateIdx === -1 || closeIdx === -1) {
+                    throw new Error('Invalid candle data format');
+                }
+
+                // Parse candle data
+                const labels = [];
+                const prices = [];
+                const entrySignals = [];
+
+                data.forEach(row => {
+                    const timestamp = new Date(row[dateIdx]);
+                    const closePrice = parseFloat(row[closeIdx]);
+
+                    labels.push(timestamp);
+                    prices.push({ x: timestamp, y: closePrice });
+
+                    // Check for entry signals (value = 1 means signal triggered)
+                    const enterLong = enterLongIdx !== -1 ? row[enterLongIdx] : 0;
+                    const enterShort = enterShortIdx !== -1 ? row[enterShortIdx] : 0;
+
+                    if (enterLong === 1 || enterShort === 1) {
+                        entrySignals.push({ x: timestamp, y: closePrice, isShort: enterShort === 1 });
+                    }
+                });
+
+                // Get executed trades for this pair to mark them differently
+                const executedTrades = (server.trades?.trades || []).filter(t => t.pair === pair);
+                const executedEntries = executedTrades.map(t => {
                     let openStr = (t.open_date || '').replace(' ', 'T');
                     if (openStr && !openStr.includes('Z') && !openStr.includes('+')) openStr += 'Z';
-                    return { x: new Date(openStr), y: t.open_rate };
+                    return { x: new Date(openStr), y: t.open_rate, isShort: t.is_short };
                 }).filter(p => !isNaN(p.x.getTime()) && p.y);
 
-                if (entryPoints.length === 0) {
-                    throw new Error('No trade data available for this coin');
-                }
-
-                // Determine time range: from earliest trade to now
-                const sortedEntries = [...entryPoints].sort((a, b) => a.x - b.x);
-                const earliestTrade = sortedEntries[0].x;
-                const now = new Date();
-                const duration = now - earliestTrade;
-
-                // Determine timeframe based on duration
-                let timeframe = '1h';
-                if (duration > 7 * 86400000) timeframe = '4h'; // > 7 days
-                else if (duration > 2 * 86400000) timeframe = '1h'; // > 2 days
-                else if (duration > 86400000) timeframe = '15m'; // > 1 day
-                else timeframe = '5m';
-
-                // Calculate time range with padding
-                const paddingTime = Math.max(duration * 0.1, 3600000); // At least 1 hour padding
-                const startTime = new Date(earliestTrade.getTime() - paddingTime);
-                const endTime = new Date(now.getTime() + paddingTime);
-
-                // Build symbol for Binance
-                let symbol = pair.split(':')[0].replace('/', '');
-
-                let klines = null;
-                const isFutures = pair.includes(':');
-
-                // Try futures first for futures pairs
-                if (isFutures) {
-                    try {
-                        const futuresUrl = `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${timeframe}&startTime=${startTime.getTime()}&endTime=${endTime.getTime()}&limit=500`;
-                        const futuresResponse = await fetch(futuresUrl);
-                        if (futuresResponse.ok) {
-                            klines = await futuresResponse.json();
-                        }
-                    } catch (e) {
-                        console.log('Binance futures failed:', e);
-                    }
-                }
-
-                // Fallback to spot
-                if (!Array.isArray(klines) || klines.length === 0) {
-                    try {
-                        const spotUrl = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${timeframe}&startTime=${startTime.getTime()}&endTime=${endTime.getTime()}&limit=500`;
-                        const spotResponse = await fetch(spotUrl);
-                        if (spotResponse.ok) {
-                            klines = await spotResponse.json();
-                        }
-                    } catch (e) {
-                        console.log('Binance spot failed:', e);
-                    }
-                }
-
-                if (!Array.isArray(klines) || klines.length === 0) {
-                    throw new Error('No chart data available from Binance');
-                }
-
-                const labels = klines.map(k => new Date(k[0]));
-                const prices = labels.map((t, i) => ({ x: t, y: parseFloat(klines[i][4]) }));
-
                 // Build summary stats
-                const totalProfit = allTrades.reduce((sum, t) => sum + (t.profit_abs || 0), 0);
-                const avgProfit = totalProfit / allTrades.length;
-                const winCount = allTrades.filter(t => (t.profit_abs || 0) >= 0).length;
-                const winRate = Math.round((winCount / allTrades.length) * 100);
+                const totalProfit = executedTrades.filter(t => !t.is_open).reduce((sum, t) => sum + (t.profit_abs || 0), 0);
+                const closedTrades = executedTrades.filter(t => !t.is_open);
+                const winCount = closedTrades.filter(t => (t.profit_abs || 0) >= 0).length;
+                const winRate = closedTrades.length > 0 ? Math.round((winCount / closedTrades.length) * 100) : 0;
 
                 const statsHtml = `
                     <div class="trade-details" style="margin-top: 0.5rem;">
                         <div class="trade-detail">
-                            <div class="trade-detail-label">Total Trades</div>
-                            <div class="trade-detail-value">${allTrades.length}</div>
+                            <div class="trade-detail-label">Entry Signals</div>
+                            <div class="trade-detail-value" style="color: #3fb950;">${entrySignals.length} <i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i></div>
+                        </div>
+                        <div class="trade-detail">
+                            <div class="trade-detail-label">Executed</div>
+                            <div class="trade-detail-value" style="color: #d63384;">${executedEntries.length} <i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i></div>
                         </div>
                         <div class="trade-detail">
                             <div class="trade-detail-label">Total Profit</div>
@@ -1413,10 +1406,6 @@
                         <div class="trade-detail">
                             <div class="trade-detail-label">Win Rate</div>
                             <div class="trade-detail-value">${winRate}%</div>
-                        </div>
-                        <div class="trade-detail">
-                            <div class="trade-detail-label">Entry Points</div>
-                            <div class="trade-detail-value" style="color: #3fb950;">${entryPoints.length} <i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i></div>
                         </div>
                     </div>
                 `;
@@ -1439,11 +1428,20 @@
                         tension: 0.1
                     },
                     {
-                        label: 'Entry Points',
-                        data: entryPoints,
+                        label: 'Entry Signals',
+                        data: entrySignals,
                         borderColor: '#3fb950',
                         backgroundColor: '#3fb950',
                         pointRadius: 6,
+                        pointStyle: 'circle',
+                        showLine: false
+                    },
+                    {
+                        label: 'Executed Trades',
+                        data: executedEntries,
+                        borderColor: '#d63384',
+                        backgroundColor: '#d63384',
+                        pointRadius: 8,
                         pointStyle: 'circle',
                         showLine: false
                     }
