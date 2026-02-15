@@ -1706,13 +1706,13 @@
             const tradesBeforeToday = closedCount - tradesToday;
             
             // Calculate today's profit
-            const profitToday = trades
-                .filter(t => {
-                    if (!t.close_date || t.is_open) return false;
-                    const closeDay = t.close_date.substring(0, 10);
-                    return closeDay === todayStr;
-                })
-                .reduce((sum, t) => sum + (t.profit_abs || 0), 0);
+            const todayTrades = trades.filter(t => {
+                if (!t.close_date || t.is_open) return false;
+                const closeDay = t.close_date.substring(0, 10);
+                return closeDay === todayStr;
+            });
+            const profitToday = todayTrades.reduce((sum, t) => sum + (t.profit_abs || 0), 0);
+            const profitPctToday = todayTrades.reduce((sum, t) => sum + (t.profit_pct || 0), 0);
             const balance = server.balance?.total || 0;
             const balanceBeforeToday = balance - profitToday;
             
@@ -1772,7 +1772,7 @@
                             </div>
                             <div class="mini-stat">
                                 <span class="mini-stat-label">Profit %</span>
-                                <span class="mini-stat-value ${getProfitClass(profitPercent)}">${formatPercent(profitPercent)}</span>
+                                <span class="mini-stat-value ${getProfitClass(profitPercent)}">${formatPercent(profitPercent)}${profitPctToday !== 0 ? ` <span class="${profitPctToday >= 0 ? 'text-success' : 'text-danger'}">${profitPctToday >= 0 ? '+' : ''}${profitPctToday.toFixed(1)}%</span>` : ''}</span>
                             </div>
                             <div class="mini-stat">
                                 <span class="mini-stat-label">Trades</span>
