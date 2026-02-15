@@ -1262,8 +1262,8 @@
                     const rowClass = profitAbs >= 0 ? 'row-profit' : 'row-loss';
 
                     return `
-                        <tr class="${rowClass} coin-row" onclick="showCoinChart(${serverNum}, '${escapeHtml(pair)}', event)">
-                            <td>${escapeHtml(pair)}</td>
+                        <tr class="${rowClass}">
+                            <td><span class="pair-badge trade-link" onclick="event.stopPropagation(); showCoinChart(${serverNum}, '${escapeHtml(pair)}', event)">${getCoinName(pair)}</span></td>
                             <td class="text-end ${profitClass}">${profitPct.toFixed(2)}</td>
                             <td class="text-end ${profitClass}">${profitAbs.toFixed(5)}</td>
                             <td class="text-end">${count}</td>
@@ -1276,7 +1276,7 @@
                         <table class="table table-dark mini-table mb-0">
                             <thead>
                                 <tr>
-                                    <th>Pair</th>
+                                    <th>Coin</th>
                                     <th class="text-end">Profit %</th>
                                     <th class="text-end">Profit</th>
                                     <th class="text-end">Count</th>
