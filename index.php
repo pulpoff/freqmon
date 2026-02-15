@@ -316,6 +316,8 @@
             background-color: rgba(63, 185, 80, 0.2);
             color: var(--accent-green);
             border: 1px solid var(--accent-green);
+            font-size: 0.64rem;
+            padding: 0.2em 0.5em;
         }
         
         .badge-dry {
