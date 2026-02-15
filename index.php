@@ -402,7 +402,16 @@
         .mini-table tbody tr.row-loss:hover {
             background: rgba(248, 81, 73, 0.25);
         }
-        
+
+        .coin-row {
+            cursor: pointer;
+        }
+
+        .coin-row td:first-child {
+            font-family: monospace;
+            font-size: 0.7rem;
+        }
+
         .pair-badge {
             background: var(--bg-tertiary);
             padding: 0.1rem 0.3rem;
@@ -444,7 +453,21 @@
         .open-trades-count:hover {
             background: #4da3ff;
         }
-        
+
+        .coin-icon-btn {
+            color: #c0c0c0;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: color 0.2s, transform 0.2s;
+            opacity: 0.8;
+        }
+
+        .coin-icon-btn:hover {
+            color: #ffd700;
+            transform: scale(1.1);
+            opacity: 1;
+        }
+
         .no-data {
             color: var(--text-secondary);
             font-size: 0.7rem;
@@ -685,6 +708,31 @@
                 <button class="modal-close" onclick="closeDailyProfitModal()">&times;</button>
             </div>
             <div class="modal-body" id="dailyProfitModalBody">
+            </div>
+        </div>
+    </div>
+
+    <!-- Traded Coins Modal -->
+    <div class="modal-overlay" id="tradedCoinsModal" onclick="closeTradedCoinsModal(event)">
+        <div class="open-trades-modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h5 id="tradedCoinsModalTitle">Traded Coins</h5>
+                <button class="modal-close" onclick="closeTradedCoinsModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="tradedCoinsModalBody">
+            </div>
+        </div>
+    </div>
+
+    <!-- Coin Chart Modal -->
+    <div class="modal-overlay" id="coinChartModal" onclick="closeCoinChartModal(event)">
+        <div class="trade-modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h5 id="coinChartModalTitle">Coin Chart</h5>
+                <button class="modal-close" onclick="closeCoinChartModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="coinChartModalBody">
+                <div class="trade-loading">Loading chart...</div>
             </div>
         </div>
     </div>
@@ -1190,6 +1238,257 @@
             document.getElementById('dailyProfitModal').classList.remove('show');
         }
 
+        function showTradedCoins(serverNum, event) {
+            event.stopPropagation();
+            const server = serverData[serverNum];
+            if (!server) return;
+
+            const serverName = server.name || `Server ${serverNum}`;
+            const performance = server.performance || [];
+
+            document.getElementById('tradedCoinsModalTitle').textContent = `Traded Coins - ${serverName}`;
+
+            if (performance.length === 0) {
+                document.getElementById('tradedCoinsModalBody').innerHTML = '<div class="no-data">No traded coins data available</div>';
+            } else {
+                // Sort by profit percentage descending
+                const sortedPerf = [...performance].sort((a, b) => (b.profit_pct || 0) - (a.profit_pct || 0));
+
+                const rows = sortedPerf.map(p => {
+                    const profitPct = p.profit_pct || 0;
+                    const profitAbs = p.profit || 0;
+                    const count = p.count || 0;
+                    const pair = p.pair || '-';
+                    const profitClass = profitAbs >= 0 ? 'text-success' : 'text-danger';
+                    const rowClass = profitAbs >= 0 ? 'row-profit' : 'row-loss';
+
+                    return `
+                        <tr class="${rowClass} coin-row" onclick="showCoinChart(${serverNum}, '${escapeHtml(pair)}', event)">
+                            <td>${escapeHtml(pair)}</td>
+                            <td class="text-end ${profitClass}">${profitPct.toFixed(2)}</td>
+                            <td class="text-end ${profitClass}">${profitAbs.toFixed(5)}</td>
+                            <td class="text-end">${count}</td>
+                        </tr>
+                    `;
+                }).join('');
+
+                document.getElementById('tradedCoinsModalBody').innerHTML = `
+                    <div class="trades-scroll" style="max-height: 350px;">
+                        <table class="table table-dark mini-table mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Pair</th>
+                                    <th class="text-end">Profit %</th>
+                                    <th class="text-end">Profit</th>
+                                    <th class="text-end">Count</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${rows}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            }
+
+            document.getElementById('tradedCoinsModal').classList.add('show');
+        }
+
+        function closeTradedCoinsModal(event) {
+            if (event && event.target !== event.currentTarget) return;
+            document.getElementById('tradedCoinsModal').classList.remove('show');
+        }
+
+        let coinChart = null;
+
+        function closeCoinChartModal(event) {
+            if (event) {
+                event.stopPropagation();
+                if (event.target !== event.currentTarget) return;
+            }
+            document.getElementById('coinChartModal').classList.remove('show');
+            if (coinChart) {
+                coinChart.destroy();
+                coinChart = null;
+            }
+        }
+
+        async function showCoinChart(serverNum, pair, event) {
+            event.stopPropagation();
+            const server = serverData[serverNum];
+            if (!server) return;
+
+            document.getElementById('coinChartModalTitle').innerHTML = `<i class="bi bi-currency-exchange me-1" style="color: #c0c0c0;"></i>${escapeHtml(pair)}`;
+            document.getElementById('coinChartModalBody').innerHTML = '<div class="trade-loading"><i class="bi bi-hourglass-split"></i> Loading chart with entry signals...</div>';
+            document.getElementById('coinChartModal').classList.add('show');
+
+            try {
+                // Get strategy timeframe from config, default to 5m
+                const config = server.config || {};
+                const timeframe = config.timeframe || '5m';
+
+                // Fetch candle data with entry signals from Freqtrade API
+                const apiUrl = `api.php?action=pair_candles&server=${serverNum}&pair=${encodeURIComponent(pair)}&timeframe=${timeframe}&limit=500`;
+                const response = await fetch(apiUrl);
+                const result = await response.json();
+
+                if (!result.success || !result.data) {
+                    throw new Error(result.error || 'Failed to fetch candle data');
+                }
+
+                const candleData = result.data;
+                const columns = candleData.columns || [];
+                const data = candleData.data || [];
+
+                if (data.length === 0) {
+                    throw new Error('No candle data available');
+                }
+
+                // Find column indices
+                const dateIdx = columns.indexOf('date');
+                const closeIdx = columns.indexOf('close');
+                const enterLongIdx = columns.indexOf('enter_long');
+                const enterShortIdx = columns.indexOf('enter_short');
+
+                if (dateIdx === -1 || closeIdx === -1) {
+                    throw new Error('Invalid candle data format');
+                }
+
+                // Parse candle data
+                const labels = [];
+                const prices = [];
+                const entrySignals = [];
+
+                data.forEach(row => {
+                    const timestamp = new Date(row[dateIdx]);
+                    const closePrice = parseFloat(row[closeIdx]);
+
+                    labels.push(timestamp);
+                    prices.push({ x: timestamp, y: closePrice });
+
+                    // Check for entry signals (value = 1 means signal triggered)
+                    const enterLong = enterLongIdx !== -1 ? row[enterLongIdx] : 0;
+                    const enterShort = enterShortIdx !== -1 ? row[enterShortIdx] : 0;
+
+                    if (enterLong === 1 || enterShort === 1) {
+                        entrySignals.push({ x: timestamp, y: closePrice, isShort: enterShort === 1 });
+                    }
+                });
+
+                // Get executed trades for this pair to mark them differently
+                const executedTrades = (server.trades?.trades || []).filter(t => t.pair === pair);
+                const executedEntries = executedTrades.map(t => {
+                    let openStr = (t.open_date || '').replace(' ', 'T');
+                    if (openStr && !openStr.includes('Z') && !openStr.includes('+')) openStr += 'Z';
+                    return { x: new Date(openStr), y: t.open_rate, isShort: t.is_short };
+                }).filter(p => !isNaN(p.x.getTime()) && p.y);
+
+                // Build summary stats
+                const totalProfit = executedTrades.filter(t => !t.is_open).reduce((sum, t) => sum + (t.profit_abs || 0), 0);
+                const closedTrades = executedTrades.filter(t => !t.is_open);
+                const winCount = closedTrades.filter(t => (t.profit_abs || 0) >= 0).length;
+                const winRate = closedTrades.length > 0 ? Math.round((winCount / closedTrades.length) * 100) : 0;
+
+                const statsHtml = `
+                    <div class="trade-details" style="margin-top: 0.5rem;">
+                        <div class="trade-detail">
+                            <div class="trade-detail-label">Entry Signals</div>
+                            <div class="trade-detail-value" style="color: #3fb950;">${entrySignals.length} <i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i></div>
+                        </div>
+                        <div class="trade-detail">
+                            <div class="trade-detail-label">Executed</div>
+                            <div class="trade-detail-value" style="color: #d63384;">${executedEntries.length} <i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i></div>
+                        </div>
+                        <div class="trade-detail">
+                            <div class="trade-detail-label">Total Profit</div>
+                            <div class="trade-detail-value ${totalProfit >= 0 ? 'text-success' : 'text-danger'}">${formatProfit(totalProfit, 4)}</div>
+                        </div>
+                        <div class="trade-detail">
+                            <div class="trade-detail-label">Win Rate</div>
+                            <div class="trade-detail-value">${winRate}%</div>
+                        </div>
+                    </div>
+                `;
+
+                document.getElementById('coinChartModalBody').innerHTML = `
+                    <div class="trade-chart-container">
+                        <canvas id="coinChartCanvas"></canvas>
+                    </div>
+                    ${statsHtml}
+                `;
+
+                const datasets = [
+                    {
+                        label: 'Price',
+                        data: prices,
+                        borderColor: '#8b949e',
+                        backgroundColor: 'transparent',
+                        borderWidth: 1.5,
+                        pointRadius: 0,
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Entry Signals',
+                        data: entrySignals,
+                        borderColor: '#3fb950',
+                        backgroundColor: '#3fb950',
+                        pointRadius: 6,
+                        pointStyle: 'circle',
+                        showLine: false
+                    },
+                    {
+                        label: 'Executed Trades',
+                        data: executedEntries,
+                        borderColor: '#d63384',
+                        backgroundColor: '#d63384',
+                        pointRadius: 8,
+                        pointStyle: 'circle',
+                        showLine: false
+                    }
+                ];
+
+                const ctx = document.getElementById('coinChartCanvas');
+                coinChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: null },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { enabled: false }
+                        },
+                        scales: {
+                            x: {
+                                type: 'time',
+                                time: {
+                                    displayFormats: { minute: 'HH:mm', hour: 'HH:mm', day: 'MMM d' }
+                                },
+                                grid: { color: 'rgba(48, 54, 61, 0.5)' },
+                                ticks: { color: '#8b949e', maxTicksLimit: 8 }
+                            },
+                            y: {
+                                grid: { color: 'rgba(48, 54, 61, 0.5)' },
+                                ticks: { color: '#8b949e' }
+                            }
+                        }
+                    }
+                });
+
+            } catch (error) {
+                console.error('Failed to load coin chart:', error);
+                document.getElementById('coinChartModalBody').innerHTML = `
+                    <div class="trade-loading" style="color: var(--accent-red);">
+                        <i class="bi bi-exclamation-triangle"></i> Could not load chart: ${escapeHtml(error.message || 'Unknown error')}
+                    </div>
+                `;
+            }
+        }
+
         // Close modal on ESC key
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
@@ -1197,6 +1496,8 @@
                 closeTradeModal();
                 closeOpenTradesModal();
                 closeDailyProfitModal();
+                closeTradedCoinsModal();
+                closeCoinChartModal();
             }
         });
         
@@ -1661,6 +1962,7 @@
                                 ${openTrades.length > 0 ? `<span class="open-trades-count" onclick="showOpenTrades(${server.server_num}, event)">${openTrades.length} open</span>` : ''}
                                 ${!isOnline ? `<span class="badge badge-offline"><i class="bi bi-x-circle me-1"></i>Offline</span>` :
                                     (config.dry_run === false ? `<span class="badge badge-live"><i class="bi bi-lightning-charge me-1"></i>Live</span>` : '')}
+                                ${isOnline ? `<span class="coin-icon-btn" onclick="showTradedCoins(${server.server_num}, event)" title="Traded Coins"><i class="bi bi-currency-exchange"></i></span>` : ''}
                             </div>
                         </div>
                         
