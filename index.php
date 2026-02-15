@@ -1318,7 +1318,7 @@
             const server = serverData[serverNum];
             if (!server) return;
 
-            document.getElementById('coinChartModalTitle').innerHTML = `<i class="bi bi-coin me-1" style="color: #c0c0c0;"></i>${escapeHtml(pair)}`;
+            document.getElementById('coinChartModalTitle').innerHTML = `<i class="bi bi-currency-exchange me-1" style="color: #c0c0c0;"></i>${escapeHtml(pair)}`;
             document.getElementById('coinChartModalBody').innerHTML = '<div class="trade-loading"><i class="bi bi-hourglass-split"></i> Loading chart with entry signals...</div>';
             document.getElementById('coinChartModal').classList.add('show');
 
@@ -1962,7 +1962,7 @@
                                 ${openTrades.length > 0 ? `<span class="open-trades-count" onclick="showOpenTrades(${server.server_num}, event)">${openTrades.length} open</span>` : ''}
                                 ${!isOnline ? `<span class="badge badge-offline"><i class="bi bi-x-circle me-1"></i>Offline</span>` :
                                     (config.dry_run === false ? `<span class="badge badge-live"><i class="bi bi-lightning-charge me-1"></i>Live</span>` : '')}
-                                ${isOnline ? `<span class="coin-icon-btn" onclick="showTradedCoins(${server.server_num}, event)" title="Traded Coins"><i class="bi bi-coin"></i></span>` : ''}
+                                ${isOnline ? `<span class="coin-icon-btn" onclick="showTradedCoins(${server.server_num}, event)" title="Traded Coins"><i class="bi bi-currency-exchange"></i></span>` : ''}
                             </div>
                         </div>
                         
