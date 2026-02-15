@@ -138,6 +138,7 @@ try {
         'settings' => [
             'summary_enabled' => $config->isSummaryEnabled(),
             'sound_enabled' => $config->isSoundEnabled(),
+            'coins_enabled' => $config->isCoinsEnabled(),
             'days' => $config->getDays(),
             'notify_duration' => $config->getNotifyDuration(),
         ],
