@@ -723,19 +723,6 @@
         </div>
     </div>
 
-    <!-- Coin Chart Modal -->
-    <div class="modal-overlay" id="coinChartModal" onclick="closeCoinChartModal(event)">
-        <div class="trade-modal-content" onclick="event.stopPropagation()">
-            <div class="modal-header">
-                <h5 id="coinChartModalTitle">Coin Chart</h5>
-                <button class="modal-close" onclick="closeCoinChartModal()">&times;</button>
-            </div>
-            <div class="modal-body" id="coinChartModalBody">
-                <div class="trade-loading">Loading chart...</div>
-            </div>
-        </div>
-    </div>
-
     <style>
         .open-trades-modal-content {
             background: var(--bg-secondary);
@@ -1263,7 +1250,7 @@
 
                     return `
                         <tr class="${rowClass}">
-                            <td><span class="pair-badge trade-link" onclick="event.stopPropagation(); showCoinChart(${serverNum}, '${escapeHtml(pair)}', event)">${getCoinName(pair)}</span></td>
+                            <td><span class="pair-badge">${getCoinName(pair)}</span></td>
                             <td class="text-end ${profitClass}">${profitPct.toFixed(2)}</td>
                             <td class="text-end ${profitClass}">${profitAbs.toFixed(5)}</td>
                             <td class="text-end">${count}</td>
@@ -1298,251 +1285,6 @@
             document.getElementById('tradedCoinsModal').classList.remove('show');
         }
 
-        let coinChart = null;
-
-        function closeCoinChartModal(event) {
-            if (event) {
-                event.stopPropagation();
-                if (event.target !== event.currentTarget) return;
-            }
-            document.getElementById('coinChartModal').classList.remove('show');
-            if (coinChart) {
-                coinChart.destroy();
-                coinChart = null;
-            }
-        }
-
-        async function showCoinChart(serverNum, pair, event) {
-            event.stopPropagation();
-            const server = serverData[serverNum];
-            if (!server) return;
-
-            document.getElementById('coinChartModalTitle').innerHTML = `<i class="bi bi-currency-exchange me-1" style="color: #ffd700;"></i>${escapeHtml(pair)}`;
-            document.getElementById('coinChartModalBody').innerHTML = '<div class="trade-loading"><i class="bi bi-hourglass-split"></i> Loading chart with entry signals...</div>';
-            document.getElementById('coinChartModal').classList.add('show');
-
-            try {
-                // Calculate 24 hours time range
-                const now = new Date();
-                const cutoff24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-
-                // Build symbol for Binance API
-                let symbol = pair.split(':')[0].replace('/', '');
-                const isFutures = pair.includes(':');
-
-                // Fetch 24h of price data from Binance (more reliable than Freqtrade)
-                let klines = null;
-                const interval = '5m'; // Use 5m for good resolution
-                const limit = 288; // 24 hours * 12 candles per hour
-
-                if (isFutures) {
-                    try {
-                        const futuresUrl = `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&startTime=${cutoff24h.getTime()}&endTime=${now.getTime()}&limit=${limit}`;
-                        const futuresResponse = await fetch(futuresUrl);
-                        if (futuresResponse.ok) {
-                            klines = await futuresResponse.json();
-                        }
-                    } catch (e) {
-                        console.log('Binance futures failed:', e);
-                    }
-                }
-
-                if (!Array.isArray(klines) || klines.length === 0) {
-                    try {
-                        const spotUrl = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&startTime=${cutoff24h.getTime()}&endTime=${now.getTime()}&limit=${limit}`;
-                        const spotResponse = await fetch(spotUrl);
-                        if (spotResponse.ok) {
-                            klines = await spotResponse.json();
-                        }
-                    } catch (e) {
-                        console.log('Binance spot failed:', e);
-                    }
-                }
-
-                // Try to fetch data from Freqtrade (for entry signals and as fallback for price)
-                let freqtradeData = null;
-                const entrySignals = [];
-                try {
-                    const config = server.config || {};
-                    const timeframe = config.timeframe || '5m';
-                    const apiUrl = `api.php?action=pair_candles&server=${serverNum}&pair=${encodeURIComponent(pair)}&timeframe=${timeframe}&limit=500`;
-                    const response = await fetch(apiUrl);
-                    const result = await response.json();
-
-                    if (result.success && result.data) {
-                        freqtradeData = result.data;
-                        const columns = freqtradeData.columns || [];
-                        const data = freqtradeData.data || [];
-                        const dateIdx = columns.indexOf('date');
-                        const closeIdx = columns.indexOf('close');
-                        const enterLongIdx = columns.indexOf('enter_long');
-                        const enterShortIdx = columns.indexOf('enter_short');
-
-                        if (dateIdx !== -1 && closeIdx !== -1) {
-                            data.forEach(row => {
-                                const timestamp = new Date(row[dateIdx]);
-                                if (timestamp < cutoff24h) return;
-                                const enterLong = enterLongIdx !== -1 ? row[enterLongIdx] : 0;
-                                const enterShort = enterShortIdx !== -1 ? row[enterShortIdx] : 0;
-                                if (enterLong === 1 || enterShort === 1) {
-                                    entrySignals.push({ x: timestamp, y: parseFloat(row[closeIdx]), isShort: enterShort === 1 });
-                                }
-                            });
-                        }
-                    }
-                } catch (e) {
-                    console.log('Failed to fetch Freqtrade data:', e);
-                }
-
-                // Parse price data - prefer Binance, fallback to Freqtrade
-                let labels = [];
-                let prices = [];
-
-                if (Array.isArray(klines) && klines.length > 0) {
-                    // Use Binance data
-                    labels = klines.map(k => new Date(k[0]));
-                    prices = labels.map((t, i) => ({ x: t, y: parseFloat(klines[i][4]) }));
-                } else if (freqtradeData) {
-                    // Fallback to Freqtrade data
-                    const columns = freqtradeData.columns || [];
-                    const data = freqtradeData.data || [];
-                    const dateIdx = columns.indexOf('date');
-                    const closeIdx = columns.indexOf('close');
-
-                    if (dateIdx !== -1 && closeIdx !== -1) {
-                        data.forEach(row => {
-                            const timestamp = new Date(row[dateIdx]);
-                            if (timestamp < cutoff24h) return;
-                            labels.push(timestamp);
-                            prices.push({ x: timestamp, y: parseFloat(row[closeIdx]) });
-                        });
-                    }
-                }
-
-                if (prices.length === 0) {
-                    throw new Error('No candle data available');
-                }
-
-                // Get executed trades for this pair - only last 24 hours
-                const executedTrades = (server.trades?.trades || []).filter(t => t.pair === pair);
-                const executedEntries = executedTrades.map(t => {
-                    let openStr = (t.open_date || '').replace(' ', 'T');
-                    if (openStr && !openStr.includes('Z') && !openStr.includes('+')) openStr += 'Z';
-                    return { x: new Date(openStr), y: t.open_rate, isShort: t.is_short };
-                }).filter(p => !isNaN(p.x.getTime()) && p.y && p.x >= cutoff24h);
-
-                // Build summary stats - only for trades within last 24 hours
-                const trades24h = executedTrades.filter(t => {
-                    let openStr = (t.open_date || '').replace(' ', 'T');
-                    if (openStr && !openStr.includes('Z') && !openStr.includes('+')) openStr += 'Z';
-                    const openDate = new Date(openStr);
-                    return !isNaN(openDate.getTime()) && openDate >= cutoff24h;
-                });
-                const closedTrades24h = trades24h.filter(t => !t.is_open);
-                const totalProfit = closedTrades24h.reduce((sum, t) => sum + (t.profit_abs || 0), 0);
-                const winCount = closedTrades24h.filter(t => (t.profit_abs || 0) >= 0).length;
-                const winRate = closedTrades24h.length > 0 ? Math.round((winCount / closedTrades24h.length) * 100) : 0;
-
-                const statsHtml = `
-                    <div class="trade-details" style="margin-top: 0.5rem;">
-                        <div class="trade-detail">
-                            <div class="trade-detail-label">Entry Signals</div>
-                            <div class="trade-detail-value" style="color: #3fb950;">${entrySignals.length} <i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i></div>
-                        </div>
-                        <div class="trade-detail">
-                            <div class="trade-detail-label">Executed</div>
-                            <div class="trade-detail-value" style="color: #d63384;">${executedEntries.length} <i class="bi bi-circle-fill" style="font-size: 0.5rem;"></i></div>
-                        </div>
-                        <div class="trade-detail">
-                            <div class="trade-detail-label">Total Profit</div>
-                            <div class="trade-detail-value ${totalProfit >= 0 ? 'text-success' : 'text-danger'}">${formatProfit(totalProfit, 4)}</div>
-                        </div>
-                        <div class="trade-detail">
-                            <div class="trade-detail-label">Win Rate</div>
-                            <div class="trade-detail-value">${winRate}%</div>
-                        </div>
-                    </div>
-                `;
-
-                document.getElementById('coinChartModalBody').innerHTML = `
-                    <div class="trade-chart-container">
-                        <canvas id="coinChartCanvas"></canvas>
-                    </div>
-                    ${statsHtml}
-                `;
-
-                const datasets = [
-                    {
-                        label: 'Price',
-                        data: prices,
-                        borderColor: '#8b949e',
-                        backgroundColor: 'transparent',
-                        borderWidth: 1.5,
-                        pointRadius: 0,
-                        tension: 0.1
-                    },
-                    {
-                        label: 'Entry Signals',
-                        data: entrySignals,
-                        borderColor: '#3fb950',
-                        backgroundColor: '#3fb950',
-                        pointRadius: 6,
-                        pointStyle: 'circle',
-                        showLine: false
-                    },
-                    {
-                        label: 'Executed Trades',
-                        data: executedEntries,
-                        borderColor: '#d63384',
-                        backgroundColor: '#d63384',
-                        pointRadius: 8,
-                        pointStyle: 'circle',
-                        showLine: false
-                    }
-                ];
-
-                const ctx = document.getElementById('coinChartCanvas');
-                coinChart = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: labels,
-                        datasets: datasets
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        interaction: { mode: null },
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: { enabled: false }
-                        },
-                        scales: {
-                            x: {
-                                type: 'time',
-                                time: {
-                                    displayFormats: { minute: 'HH:mm', hour: 'HH:mm', day: 'MMM d' }
-                                },
-                                grid: { color: 'rgba(48, 54, 61, 0.5)' },
-                                ticks: { color: '#8b949e', maxTicksLimit: 8 }
-                            },
-                            y: {
-                                grid: { color: 'rgba(48, 54, 61, 0.5)' },
-                                ticks: { color: '#8b949e' }
-                            }
-                        }
-                    }
-                });
-
-            } catch (error) {
-                console.error('Failed to load coin chart:', error);
-                document.getElementById('coinChartModalBody').innerHTML = `
-                    <div class="trade-loading" style="color: var(--accent-red);">
-                        <i class="bi bi-exclamation-triangle"></i> Could not load chart: ${escapeHtml(error.message || 'Unknown error')}
-                    </div>
-                `;
-            }
-        }
-
         // Close modal on ESC key
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
@@ -1551,7 +1293,6 @@
                 closeOpenTradesModal();
                 closeDailyProfitModal();
                 closeTradedCoinsModal();
-                closeCoinChartModal();
             }
         });
         
