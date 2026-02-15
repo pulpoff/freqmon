@@ -1754,13 +1754,11 @@
                                 <h5 class="server-name">${server.url ? `<a href="${escapeHtml(server.url)}" target="_blank" class="server-icon-link" onclick="event.stopPropagation()"><i class="bi bi-database me-1"></i></a><a href="${escapeHtml(server.url)}" target="_blank" class="server-name-link" onclick="event.stopPropagation()">${escapeHtml(server.name)}</a>` : `<i class="bi bi-database me-1 server-icon"></i>${escapeHtml(server.name)}`}<span class="activity-star" id="activity-star-${server.server_num}"><i class="bi bi-star-fill"></i></span></h5>
                                 ${isOnline ? `<div class="strategy-name"><span class="strategy-clickable" onclick="showStrategyInfo(${server.server_num}, event)"><i class="bi bi-cpu me-1"></i>${escapeHtml(strategy)}</span>${daysText ? `<span class="days-badge days-clickable" onclick="showDailyProfit(${server.server_num}, event)">${daysText}</span>` : ''}</div>` : ''}
                             </div>
-                            <div class="d-flex flex-column align-items-end gap-1">
-                                <div class="d-flex align-items-center gap-2">
-                                    ${isOnline && coinsEnabled ? `<span class="coin-icon-btn" onclick="showTradedCoins(${server.server_num}, event)" title="Traded Coins"><i class="bi bi-currency-exchange"></i></span>` : ''}
-                                    ${openTrades.length > 0 ? `<span class="open-trades-count" onclick="showOpenTrades(${server.server_num}, event)">${openTrades.length} open</span>` : ''}
-                                    ${!isOnline ? `<span class="badge badge-offline"><i class="bi bi-x-circle me-1"></i>Offline</span>` :
-                                        (config.dry_run === false ? `<span class="badge badge-live"><i class="bi bi-lightning-charge me-1"></i>Live</span>` : '')}
-                                </div>
+                            <div class="d-flex align-items-center gap-2">
+                                ${isOnline && coinsEnabled ? `<span class="coin-icon-btn" onclick="showTradedCoins(${server.server_num}, event)" title="Traded Coins"><i class="bi bi-currency-exchange"></i></span>` : ''}
+                                ${openTrades.length > 0 ? `<span class="open-trades-count" onclick="showOpenTrades(${server.server_num}, event)">${openTrades.length} open</span>` : ''}
+                                ${!isOnline ? `<span class="badge badge-offline"><i class="bi bi-x-circle me-1"></i>Offline</span>` :
+                                    (config.dry_run === false ? `<span class="badge badge-live"><i class="bi bi-lightning-charge me-1"></i>Live</span>` : '')}
                             </div>
                         </div>
                         
