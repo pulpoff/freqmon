@@ -1714,12 +1714,14 @@
                 return closeDay === todayStr;
             });
             const profitToday = todayTrades.reduce((sum, t) => sum + (t.profit_abs || 0), 0);
-            const profitPctToday = todayTrades.reduce((sum, t) => sum + (t.profit_pct || 0), 0);
             const balance = server.balance?.total || 0;
             const balanceBeforeToday = balance - profitToday;
+            // Calculate profit % delta based on balance change, not sum of trade percentages
+            const profitPctToday = balanceBeforeToday > 0 ? (profitToday / balanceBeforeToday) * 100 : 0;
             
             // Calculate days running from first trade timestamp
             let daysText = '';
+            let daysCount = 0;
             if (profit.first_trade_timestamp) {
                 // Detect if timestamp is in seconds or milliseconds (ms timestamps are > 1e12)
                 const ts = profit.first_trade_timestamp > 1e12 ? profit.first_trade_timestamp : profit.first_trade_timestamp * 1000;
@@ -1728,9 +1730,9 @@
                 // Count calendar days (set both to start of day UTC and count difference)
                 const firstDay = new Date(Date.UTC(firstTrade.getFullYear(), firstTrade.getMonth(), firstTrade.getDate()));
                 const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
-                const days = Math.round((today - firstDay) / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end day
-                if (days > 0) {
-                    daysText = `(${days} day${days !== 1 ? 's' : ''})`;
+                daysCount = Math.round((today - firstDay) / (1000 * 60 * 60 * 24)) + 1; // +1 to include both start and end day
+                if (daysCount > 0) {
+                    daysText = `(${daysCount} day${daysCount !== 1 ? 's' : ''})`;
                 }
             } else if (trades.length > 0) {
                 const allDates = trades
@@ -1742,8 +1744,8 @@
                     const now = new Date();
                     const firstDay = new Date(Date.UTC(earliest.getFullYear(), earliest.getMonth(), earliest.getDate()));
                     const today = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
-                    const days = Math.round((today - firstDay) / (1000 * 60 * 60 * 24)) + 1;
-                    daysText = `(${days} day${days !== 1 ? 's' : ''})`;
+                    daysCount = Math.round((today - firstDay) / (1000 * 60 * 60 * 24)) + 1;
+                    daysText = `(${daysCount} day${daysCount !== 1 ? 's' : ''})`;
                 }
             }
             
@@ -1772,11 +1774,11 @@
                             </div>
                             <div class="mini-stat">
                                 <span class="mini-stat-label">Profit %</span>
-                                <span class="mini-stat-value ${getProfitClass(profitPercent)}">${formatPercent(profitPercent)}${profitPctToday !== 0 ? ` <span class="${profitPctToday >= 0 ? 'text-success' : 'text-danger'}">${profitPctToday >= 0 ? '+' : ''}${profitPctToday.toFixed(1)}%</span>` : ''}</span>
+                                <span class="mini-stat-value ${getProfitClass(profitPercent)}">${formatPercent(profitPercent)}${daysCount > 1 && profitPctToday !== 0 ? ` <span class="${profitPctToday >= 0 ? 'text-success' : 'text-danger'}">${profitPctToday >= 0 ? '+' : ''}${profitPctToday.toFixed(1)}%</span>` : ''}</span>
                             </div>
                             <div class="mini-stat">
                                 <span class="mini-stat-label">Trades</span>
-                                <span class="mini-stat-value">${closedCount}${tradesToday > 0 ? ` <span class="text-info">+${tradesToday}</span>` : ''}</span>
+                                <span class="mini-stat-value">${closedCount}${daysCount > 1 && tradesToday > 0 ? ` <span class="text-info">+${tradesToday}</span>` : ''}</span>
                             </div>
                             <div class="mini-stat">
                                 <span class="mini-stat-label">Win/Loss</span>
@@ -1788,7 +1790,7 @@
                             </div>
                             <div class="mini-stat">
                                 <span class="mini-stat-label">Balance</span>
-                                <span class="mini-stat-value">${balance.toFixed(1)}${profitToday !== 0 ? ` <span class="${profitToday >= 0 ? 'text-success' : 'text-danger'}">${profitToday >= 0 ? '+' : ''}${profitToday.toFixed(1)}</span>` : ''}</span>
+                                <span class="mini-stat-value">${balance.toFixed(1)}${daysCount > 1 && profitToday !== 0 ? ` <span class="${profitToday >= 0 ? 'text-success' : 'text-danger'}">${profitToday >= 0 ? '+' : ''}${profitToday.toFixed(1)}</span>` : ''}</span>
                             </div>
                         </div>
 
