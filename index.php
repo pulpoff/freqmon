@@ -1357,13 +1357,21 @@
                     throw new Error('Invalid candle data format');
                 }
 
-                // Parse candle data
+                // Calculate 24 hours ago cutoff
+                const now = new Date();
+                const cutoff24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+                // Parse candle data - only last 24 hours
                 const labels = [];
                 const prices = [];
                 const entrySignals = [];
 
                 data.forEach(row => {
                     const timestamp = new Date(row[dateIdx]);
+
+                    // Skip data older than 24 hours
+                    if (timestamp < cutoff24h) return;
+
                     const closePrice = parseFloat(row[closeIdx]);
 
                     labels.push(timestamp);
@@ -1378,19 +1386,25 @@
                     }
                 });
 
-                // Get executed trades for this pair to mark them differently
+                // Get executed trades for this pair - only last 24 hours
                 const executedTrades = (server.trades?.trades || []).filter(t => t.pair === pair);
                 const executedEntries = executedTrades.map(t => {
                     let openStr = (t.open_date || '').replace(' ', 'T');
                     if (openStr && !openStr.includes('Z') && !openStr.includes('+')) openStr += 'Z';
                     return { x: new Date(openStr), y: t.open_rate, isShort: t.is_short };
-                }).filter(p => !isNaN(p.x.getTime()) && p.y);
+                }).filter(p => !isNaN(p.x.getTime()) && p.y && p.x >= cutoff24h);
 
-                // Build summary stats
-                const totalProfit = executedTrades.filter(t => !t.is_open).reduce((sum, t) => sum + (t.profit_abs || 0), 0);
-                const closedTrades = executedTrades.filter(t => !t.is_open);
-                const winCount = closedTrades.filter(t => (t.profit_abs || 0) >= 0).length;
-                const winRate = closedTrades.length > 0 ? Math.round((winCount / closedTrades.length) * 100) : 0;
+                // Build summary stats - only for trades within last 24 hours
+                const trades24h = executedTrades.filter(t => {
+                    let openStr = (t.open_date || '').replace(' ', 'T');
+                    if (openStr && !openStr.includes('Z') && !openStr.includes('+')) openStr += 'Z';
+                    const openDate = new Date(openStr);
+                    return !isNaN(openDate.getTime()) && openDate >= cutoff24h;
+                });
+                const closedTrades24h = trades24h.filter(t => !t.is_open);
+                const totalProfit = closedTrades24h.reduce((sum, t) => sum + (t.profit_abs || 0), 0);
+                const winCount = closedTrades24h.filter(t => (t.profit_abs || 0) >= 0).length;
+                const winRate = closedTrades24h.length > 0 ? Math.round((winCount / closedTrades24h.length) * 100) : 0;
 
                 const statsHtml = `
                     <div class="trade-details" style="margin-top: 0.5rem;">
