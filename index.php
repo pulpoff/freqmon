@@ -1774,7 +1774,7 @@
                             </div>
                             <div class="mini-stat">
                                 <span class="mini-stat-label">Profit %</span>
-                                <span class="mini-stat-value ${getProfitClass(profitPercent)}">${formatPercent(profitPercent)}${daysCount > 1 && profitPctToday !== 0 ? ` <span class="${profitPctToday >= 0 ? 'text-success' : 'text-danger'}">${profitPctToday >= 0 ? '+' : ''}${profitPctToday.toFixed(1)}%</span>` : ''}</span>
+                                <span class="mini-stat-value ${getProfitClass(profitPercent)}">${formatPercent(profitPercent)}</span>
                             </div>
                             <div class="mini-stat">
                                 <span class="mini-stat-label">Trades</span>
