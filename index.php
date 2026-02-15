@@ -1044,7 +1044,12 @@
                     const leverage = lev > 1 ? ` x${lev % 1 === 0 ? lev : lev.toFixed(1)}` : '';
                     const profitPct = t.profit_pct || 0;
                     const profitAbs = t.profit_abs || 0;
-                    const openDate = t.open_date ? formatCompactDate(t.open_date) : '-';
+                    const openDuration = (() => {
+                        if (!t.open_date) return '-';
+                        let str = t.open_date.replace(' ', 'T');
+                        if (!str.includes('Z') && !str.includes('+')) str += 'Z';
+                        return Math.round((new Date() - new Date(str)) / 60000) + ' min';
+                    })();
                     const rowClass = profitPct >= 0 ? 'row-profit' : 'row-loss';
 
                     // Store in tradeCache for chart viewing
@@ -1059,7 +1064,7 @@
                             <td class="text-end ${getProfitClass(profitAbs)}">${formatProfit(profitAbs)}</td>
                             <td class="text-end ${getProfitClass(profitPct)}">${profitPct.toFixed(1)}%</td>
                             <td><small style="color: #8b949e;">${t.current_rate?.toFixed(4) || '-'}</small></td>
-                            <td><small style="color: #8b949e;">${openDate}</small></td>
+                            <td><small style="color: #8b949e;">${openDuration}</small></td>
                         </tr>
                     `;
                 }).join('');
@@ -1073,7 +1078,7 @@
                                     <th class="text-end">Profit</th>
                                     <th class="text-end">%</th>
                                     <th>Rate</th>
-                                    <th>Date</th>
+                                    <th>Dur.</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1711,13 +1716,21 @@
                                         <th class="text-end">Profit</th>
                                         <th class="text-end">%</th>
                                         <th>Exit</th>
-                                        <th>Date</th>
+                                        <th>Dur.</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     ${closedTrades.map(t => {
                                         const rowClass = (t.profit_abs || 0) >= 0 ? 'row-profit' : 'row-loss';
-                                        const closeDate = t.close_date ? formatCompactDate(t.close_date) : '-';
+                                        const tradeDuration = (() => {
+                                            if (t.trade_duration) return t.trade_duration;
+                                            if (!t.open_date || !t.close_date) return '-';
+                                            let openStr = t.open_date.replace(' ', 'T');
+                                            if (!openStr.includes('Z') && !openStr.includes('+')) openStr += 'Z';
+                                            let closeStr = t.close_date.replace(' ', 'T');
+                                            if (!closeStr.includes('Z') && !closeStr.includes('+')) closeStr += 'Z';
+                                            return Math.round((new Date(closeStr) - new Date(openStr)) / 60000) + ' min';
+                                        })();
                                         const lev = t.leverage && t.leverage > 1 ? parseFloat(t.leverage) : 0;
                                         const leverage = lev > 1 ? ` x${lev % 1 === 0 ? lev : lev.toFixed(2)}` : '';
                                         const arrow = t.is_short ? '<span style="font-size:1.3em;color:#d29922">↓</span>' : '<span style="font-size:1.3em;color:#58a6ff">↑</span>';
@@ -1731,7 +1744,7 @@
                                         <td class="text-end ${getProfitClass(t.profit_abs)}">${formatProfit(t.profit_abs)}</td>
                                         <td class="text-end ${getProfitClass(t.profit_pct)}">${(t.profit_pct || 0).toFixed(1)}%</td>
                                         <td><small style="color: #8b949e;">${escapeHtml(exitReason)}</small></td>
-                                        <td><small style="color: #8b949e;">${closeDate}</small></td>
+                                        <td><small style="color: #8b949e;">${tradeDuration}</small></td>
                                     </tr>
                                     `}).join('')}
                                 </tbody>
