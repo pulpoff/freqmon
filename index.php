@@ -69,7 +69,7 @@
 
         .server-name {
             font-weight: 600;
-            font-size: 0.9rem;
+            font-size: 1rem;
             margin: 0;
             color: #ffffff;
         }
@@ -316,6 +316,8 @@
             background-color: rgba(63, 185, 80, 0.2);
             color: var(--accent-green);
             border: 1px solid var(--accent-green);
+            font-size: 0.64rem;
+            padding: 0.2em 0.5em;
         }
         
         .badge-dry {
@@ -1706,13 +1708,13 @@
             const tradesBeforeToday = closedCount - tradesToday;
             
             // Calculate today's profit
-            const profitToday = trades
-                .filter(t => {
-                    if (!t.close_date || t.is_open) return false;
-                    const closeDay = t.close_date.substring(0, 10);
-                    return closeDay === todayStr;
-                })
-                .reduce((sum, t) => sum + (t.profit_abs || 0), 0);
+            const todayTrades = trades.filter(t => {
+                if (!t.close_date || t.is_open) return false;
+                const closeDay = t.close_date.substring(0, 10);
+                return closeDay === todayStr;
+            });
+            const profitToday = todayTrades.reduce((sum, t) => sum + (t.profit_abs || 0), 0);
+            const profitPctToday = todayTrades.reduce((sum, t) => sum + (t.profit_pct || 0), 0);
             const balance = server.balance?.total || 0;
             const balanceBeforeToday = balance - profitToday;
             
@@ -1754,13 +1756,11 @@
                                 <h5 class="server-name">${server.url ? `<a href="${escapeHtml(server.url)}" target="_blank" class="server-icon-link" onclick="event.stopPropagation()"><i class="bi bi-database me-1"></i></a><a href="${escapeHtml(server.url)}" target="_blank" class="server-name-link" onclick="event.stopPropagation()">${escapeHtml(server.name)}</a>` : `<i class="bi bi-database me-1 server-icon"></i>${escapeHtml(server.name)}`}<span class="activity-star" id="activity-star-${server.server_num}"><i class="bi bi-star-fill"></i></span></h5>
                                 ${isOnline ? `<div class="strategy-name"><span class="strategy-clickable" onclick="showStrategyInfo(${server.server_num}, event)"><i class="bi bi-cpu me-1"></i>${escapeHtml(strategy)}</span>${daysText ? `<span class="days-badge days-clickable" onclick="showDailyProfit(${server.server_num}, event)">${daysText}</span>` : ''}</div>` : ''}
                             </div>
-                            <div class="d-flex flex-column align-items-end gap-1">
-                                <div class="d-flex align-items-center gap-2">
-                                    ${openTrades.length > 0 ? `<span class="open-trades-count" onclick="showOpenTrades(${server.server_num}, event)">${openTrades.length} open</span>` : ''}
-                                    ${!isOnline ? `<span class="badge badge-offline"><i class="bi bi-x-circle me-1"></i>Offline</span>` :
-                                        (config.dry_run === false ? `<span class="badge badge-live"><i class="bi bi-lightning-charge me-1"></i>Live</span>` : '')}
-                                </div>
+                            <div class="d-flex align-items-center gap-2">
                                 ${isOnline && coinsEnabled ? `<span class="coin-icon-btn" onclick="showTradedCoins(${server.server_num}, event)" title="Traded Coins"><i class="bi bi-currency-exchange"></i></span>` : ''}
+                                ${openTrades.length > 0 ? `<span class="open-trades-count" onclick="showOpenTrades(${server.server_num}, event)">${openTrades.length} open</span>` : ''}
+                                ${!isOnline ? `<span class="badge badge-offline"><i class="bi bi-x-circle me-1"></i>Offline</span>` :
+                                    (config.dry_run === false ? `<span class="badge badge-live"><i class="bi bi-lightning-charge me-1"></i>Live</span>` : '')}
                             </div>
                         </div>
                         
@@ -1772,7 +1772,7 @@
                             </div>
                             <div class="mini-stat">
                                 <span class="mini-stat-label">Profit %</span>
-                                <span class="mini-stat-value ${getProfitClass(profitPercent)}">${formatPercent(profitPercent)}</span>
+                                <span class="mini-stat-value ${getProfitClass(profitPercent)}">${formatPercent(profitPercent)}${profitPctToday !== 0 ? ` <span class="${profitPctToday >= 0 ? 'text-success' : 'text-danger'}">${profitPctToday >= 0 ? '+' : ''}${profitPctToday.toFixed(1)}%</span>` : ''}</span>
                             </div>
                             <div class="mini-stat">
                                 <span class="mini-stat-label">Trades</span>
