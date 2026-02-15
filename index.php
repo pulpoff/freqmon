@@ -69,7 +69,7 @@
 
         .server-name {
             font-weight: 600;
-            font-size: 0.9rem;
+            font-size: 1rem;
             margin: 0;
             color: #ffffff;
         }
@@ -456,7 +456,7 @@
 
         .coin-icon-btn {
             color: #8b949e;
-            font-size: 0.9rem;
+            font-size: 1rem;
             cursor: pointer;
             transition: color 0.2s, transform 0.2s;
             padding: 0.1rem 0.2rem;
