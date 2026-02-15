@@ -455,17 +455,16 @@
         }
 
         .coin-icon-btn {
-            color: #c0c0c0;
-            font-size: 0.9rem;
+            color: #ffd700;
+            font-size: 1rem;
             cursor: pointer;
             transition: color 0.2s, transform 0.2s;
-            opacity: 0.8;
+            padding: 0.1rem 0.2rem;
         }
 
         .coin-icon-btn:hover {
-            color: #ffd700;
-            transform: scale(1.1);
-            opacity: 1;
+            color: #ffed4a;
+            transform: scale(1.15);
         }
 
         .no-data {
@@ -1263,8 +1262,8 @@
                     const rowClass = profitAbs >= 0 ? 'row-profit' : 'row-loss';
 
                     return `
-                        <tr class="${rowClass} coin-row" onclick="showCoinChart(${serverNum}, '${escapeHtml(pair)}', event)">
-                            <td>${escapeHtml(pair)}</td>
+                        <tr class="${rowClass}">
+                            <td><span class="pair-badge trade-link" onclick="event.stopPropagation(); showCoinChart(${serverNum}, '${escapeHtml(pair)}', event)">${getCoinName(pair)}</span></td>
                             <td class="text-end ${profitClass}">${profitPct.toFixed(2)}</td>
                             <td class="text-end ${profitClass}">${profitAbs.toFixed(5)}</td>
                             <td class="text-end">${count}</td>
@@ -1277,7 +1276,7 @@
                         <table class="table table-dark mini-table mb-0">
                             <thead>
                                 <tr>
-                                    <th>Pair</th>
+                                    <th>Coin</th>
                                     <th class="text-end">Profit %</th>
                                     <th class="text-end">Profit</th>
                                     <th class="text-end">Count</th>
@@ -1318,7 +1317,7 @@
             const server = serverData[serverNum];
             if (!server) return;
 
-            document.getElementById('coinChartModalTitle').innerHTML = `<i class="bi bi-currency-exchange me-1" style="color: #c0c0c0;"></i>${escapeHtml(pair)}`;
+            document.getElementById('coinChartModalTitle').innerHTML = `<i class="bi bi-currency-exchange me-1" style="color: #ffd700;"></i>${escapeHtml(pair)}`;
             document.getElementById('coinChartModalBody').innerHTML = '<div class="trade-loading"><i class="bi bi-hourglass-split"></i> Loading chart with entry signals...</div>';
             document.getElementById('coinChartModal').classList.add('show');
 
@@ -1327,8 +1326,12 @@
                 const config = server.config || {};
                 const timeframe = config.timeframe || '5m';
 
+                // Calculate candle limit for 24 hours based on timeframe
+                const candlesPerHour = { '1m': 60, '3m': 20, '5m': 12, '15m': 4, '30m': 2, '1h': 1, '2h': 0.5, '4h': 0.25 };
+                const limit = Math.ceil((candlesPerHour[timeframe] || 12) * 24);
+
                 // Fetch candle data with entry signals from Freqtrade API
-                const apiUrl = `api.php?action=pair_candles&server=${serverNum}&pair=${encodeURIComponent(pair)}&timeframe=${timeframe}&limit=500`;
+                const apiUrl = `api.php?action=pair_candles&server=${serverNum}&pair=${encodeURIComponent(pair)}&timeframe=${timeframe}&limit=${limit}`;
                 const response = await fetch(apiUrl);
                 const result = await response.json();
 
@@ -1958,10 +1961,12 @@
                                 <h5 class="server-name">${server.url ? `<a href="${escapeHtml(server.url)}" target="_blank" class="server-icon-link" onclick="event.stopPropagation()"><i class="bi bi-database me-1"></i></a><a href="${escapeHtml(server.url)}" target="_blank" class="server-name-link" onclick="event.stopPropagation()">${escapeHtml(server.name)}</a>` : `<i class="bi bi-database me-1 server-icon"></i>${escapeHtml(server.name)}`}<span class="activity-star" id="activity-star-${server.server_num}"><i class="bi bi-star-fill"></i></span></h5>
                                 ${isOnline ? `<div class="strategy-name"><span class="strategy-clickable" onclick="showStrategyInfo(${server.server_num}, event)"><i class="bi bi-cpu me-1"></i>${escapeHtml(strategy)}</span>${daysText ? `<span class="days-badge days-clickable" onclick="showDailyProfit(${server.server_num}, event)">${daysText}</span>` : ''}</div>` : ''}
                             </div>
-                            <div class="d-flex align-items-center gap-2">
-                                ${openTrades.length > 0 ? `<span class="open-trades-count" onclick="showOpenTrades(${server.server_num}, event)">${openTrades.length} open</span>` : ''}
-                                ${!isOnline ? `<span class="badge badge-offline"><i class="bi bi-x-circle me-1"></i>Offline</span>` :
-                                    (config.dry_run === false ? `<span class="badge badge-live"><i class="bi bi-lightning-charge me-1"></i>Live</span>` : '')}
+                            <div class="d-flex flex-column align-items-end gap-1">
+                                <div class="d-flex align-items-center gap-2">
+                                    ${openTrades.length > 0 ? `<span class="open-trades-count" onclick="showOpenTrades(${server.server_num}, event)">${openTrades.length} open</span>` : ''}
+                                    ${!isOnline ? `<span class="badge badge-offline"><i class="bi bi-x-circle me-1"></i>Offline</span>` :
+                                        (config.dry_run === false ? `<span class="badge badge-live"><i class="bi bi-lightning-charge me-1"></i>Live</span>` : '')}
+                                </div>
                                 ${isOnline ? `<span class="coin-icon-btn" onclick="showTradedCoins(${server.server_num}, event)" title="Traded Coins"><i class="bi bi-currency-exchange"></i></span>` : ''}
                             </div>
                         </div>
