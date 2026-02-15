@@ -1322,69 +1322,83 @@
             document.getElementById('coinChartModal').classList.add('show');
 
             try {
-                // Get strategy timeframe from config, default to 5m
-                const config = server.config || {};
-                const timeframe = config.timeframe || '5m';
-
-                // Calculate candle limit for 24 hours based on timeframe
-                const candlesPerHour = { '1m': 60, '3m': 20, '5m': 12, '15m': 4, '30m': 2, '1h': 1, '2h': 0.5, '4h': 0.25 };
-                const limit = Math.ceil((candlesPerHour[timeframe] || 12) * 24);
-
-                // Fetch candle data with entry signals from Freqtrade API
-                const apiUrl = `api.php?action=pair_candles&server=${serverNum}&pair=${encodeURIComponent(pair)}&timeframe=${timeframe}&limit=${limit}`;
-                const response = await fetch(apiUrl);
-                const result = await response.json();
-
-                if (!result.success || !result.data) {
-                    throw new Error(result.error || 'Failed to fetch candle data');
-                }
-
-                const candleData = result.data;
-                const columns = candleData.columns || [];
-                const data = candleData.data || [];
-
-                if (data.length === 0) {
-                    throw new Error('No candle data available');
-                }
-
-                // Find column indices
-                const dateIdx = columns.indexOf('date');
-                const closeIdx = columns.indexOf('close');
-                const enterLongIdx = columns.indexOf('enter_long');
-                const enterShortIdx = columns.indexOf('enter_short');
-
-                if (dateIdx === -1 || closeIdx === -1) {
-                    throw new Error('Invalid candle data format');
-                }
-
-                // Calculate 24 hours ago cutoff
+                // Calculate 24 hours time range
                 const now = new Date();
                 const cutoff24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-                // Parse candle data - only last 24 hours
-                const labels = [];
-                const prices = [];
-                const entrySignals = [];
+                // Build symbol for Binance API
+                let symbol = pair.split(':')[0].replace('/', '');
+                const isFutures = pair.includes(':');
 
-                data.forEach(row => {
-                    const timestamp = new Date(row[dateIdx]);
+                // Fetch 24h of price data from Binance (more reliable than Freqtrade)
+                let klines = null;
+                const interval = '5m'; // Use 5m for good resolution
+                const limit = 288; // 24 hours * 12 candles per hour
 
-                    // Skip data older than 24 hours
-                    if (timestamp < cutoff24h) return;
-
-                    const closePrice = parseFloat(row[closeIdx]);
-
-                    labels.push(timestamp);
-                    prices.push({ x: timestamp, y: closePrice });
-
-                    // Check for entry signals (value = 1 means signal triggered)
-                    const enterLong = enterLongIdx !== -1 ? row[enterLongIdx] : 0;
-                    const enterShort = enterShortIdx !== -1 ? row[enterShortIdx] : 0;
-
-                    if (enterLong === 1 || enterShort === 1) {
-                        entrySignals.push({ x: timestamp, y: closePrice, isShort: enterShort === 1 });
+                if (isFutures) {
+                    try {
+                        const futuresUrl = `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&startTime=${cutoff24h.getTime()}&endTime=${now.getTime()}&limit=${limit}`;
+                        const futuresResponse = await fetch(futuresUrl);
+                        if (futuresResponse.ok) {
+                            klines = await futuresResponse.json();
+                        }
+                    } catch (e) {
+                        console.log('Binance futures failed:', e);
                     }
-                });
+                }
+
+                if (!Array.isArray(klines) || klines.length === 0) {
+                    try {
+                        const spotUrl = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&startTime=${cutoff24h.getTime()}&endTime=${now.getTime()}&limit=${limit}`;
+                        const spotResponse = await fetch(spotUrl);
+                        if (spotResponse.ok) {
+                            klines = await spotResponse.json();
+                        }
+                    } catch (e) {
+                        console.log('Binance spot failed:', e);
+                    }
+                }
+
+                if (!Array.isArray(klines) || klines.length === 0) {
+                    throw new Error('No chart data available from Binance');
+                }
+
+                // Parse Binance klines data
+                const labels = klines.map(k => new Date(k[0]));
+                const prices = labels.map((t, i) => ({ x: t, y: parseFloat(klines[i][4]) }));
+
+                // Try to fetch entry signals from Freqtrade (optional)
+                const entrySignals = [];
+                try {
+                    const config = server.config || {};
+                    const timeframe = config.timeframe || '5m';
+                    const apiUrl = `api.php?action=pair_candles&server=${serverNum}&pair=${encodeURIComponent(pair)}&timeframe=${timeframe}&limit=500`;
+                    const response = await fetch(apiUrl);
+                    const result = await response.json();
+
+                    if (result.success && result.data) {
+                        const columns = result.data.columns || [];
+                        const data = result.data.data || [];
+                        const dateIdx = columns.indexOf('date');
+                        const closeIdx = columns.indexOf('close');
+                        const enterLongIdx = columns.indexOf('enter_long');
+                        const enterShortIdx = columns.indexOf('enter_short');
+
+                        if (dateIdx !== -1 && closeIdx !== -1) {
+                            data.forEach(row => {
+                                const timestamp = new Date(row[dateIdx]);
+                                if (timestamp < cutoff24h) return;
+                                const enterLong = enterLongIdx !== -1 ? row[enterLongIdx] : 0;
+                                const enterShort = enterShortIdx !== -1 ? row[enterShortIdx] : 0;
+                                if (enterLong === 1 || enterShort === 1) {
+                                    entrySignals.push({ x: timestamp, y: parseFloat(row[closeIdx]), isShort: enterShort === 1 });
+                                }
+                            });
+                        }
+                    }
+                } catch (e) {
+                    console.log('Failed to fetch entry signals:', e);
+                }
 
                 // Get executed trades for this pair - only last 24 hours
                 const executedTrades = (server.trades?.trades || []).filter(t => t.pair === pair);
