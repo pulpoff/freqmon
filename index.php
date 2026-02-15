@@ -1078,7 +1078,7 @@
                                     <th class="text-end">Profit</th>
                                     <th class="text-end">%</th>
                                     <th>Rate</th>
-                                    <th>Dur.</th>
+                                    <th>Duration</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1716,7 +1716,7 @@
                                         <th class="text-end">Profit</th>
                                         <th class="text-end">%</th>
                                         <th>Exit</th>
-                                        <th>Dur.</th>
+                                        <th>Duration</th>
                                     </tr>
                                 </thead>
                                 <tbody>
