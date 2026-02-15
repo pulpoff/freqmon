@@ -123,4 +123,10 @@ class Config
         $password = $this->getSetting('PASSWORD', null);
         return $password ? (string) $password : null;
     }
+
+    public function isCoinsEnabled(): bool
+    {
+        $value = strtoupper($this->getSetting('COINS', 'OFF'));
+        return $value === 'ON' || $value === 'TRUE' || $value === '1';
+    }
 }

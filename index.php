@@ -774,6 +774,7 @@
         const tradeCache = {}; // Store trade data for chart modal
         let previousServerState = {}; // Store previous state for comparison
         let soundEnabled = true; // Default to on, updated from settings
+        let coinsEnabled = false; // Default to off, updated from settings
         let configDays = 20; // Default days to show in charts, updated from settings
         let notifyDuration = 10; // Default seconds to show activity star, updated from settings
 
@@ -1759,7 +1760,7 @@
                                     ${!isOnline ? `<span class="badge badge-offline"><i class="bi bi-x-circle me-1"></i>Offline</span>` :
                                         (config.dry_run === false ? `<span class="badge badge-live"><i class="bi bi-lightning-charge me-1"></i>Live</span>` : '')}
                                 </div>
-                                ${isOnline ? `<span class="coin-icon-btn" onclick="showTradedCoins(${server.server_num}, event)" title="Traded Coins"><i class="bi bi-currency-exchange"></i></span>` : ''}
+                                ${isOnline && coinsEnabled ? `<span class="coin-icon-btn" onclick="showTradedCoins(${server.server_num}, event)" title="Traded Coins"><i class="bi bi-currency-exchange"></i></span>` : ''}
                             </div>
                         </div>
                         
@@ -2166,6 +2167,7 @@
 
                 // Update settings
                 soundEnabled = settings.sound_enabled !== false;
+                coinsEnabled = settings.coins_enabled === true;
                 configDays = settings.days || 20;
                 notifyDuration = settings.notify_duration || 10;
 
