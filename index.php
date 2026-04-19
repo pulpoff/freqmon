@@ -818,6 +818,7 @@
             const profit = server.profit || {};
             const config = server.config || {};
             const balance = server.balance || {};
+            const whitelist = server.whitelist || {};
             
             const modalTitle = document.getElementById('modalTitle');
             const modalBody = document.getElementById('modalBody');
@@ -844,7 +845,27 @@
             const firstTrade = profit.first_trade_humanized || 'N/A';
             const latestTrade = profit.latest_trade_humanized || 'N/A';
             const tradeCount = profit.closed_trade_count || 0;
-            
+
+            const maxOpenTrades = config.max_open_trades !== undefined && config.max_open_trades !== null ? config.max_open_trades : 'N/A';
+            const numCoins = Array.isArray(whitelist.whitelist) ? whitelist.whitelist.length
+                : (whitelist.length !== undefined ? whitelist.length : 'N/A');
+
+            const maxDrawdownPct = profit.max_drawdown !== undefined && profit.max_drawdown !== null
+                ? (profit.max_drawdown * 100).toFixed(2) + '%' : null;
+            const maxDrawdownAbs = profit.max_drawdown_abs !== undefined && profit.max_drawdown_abs !== null
+                ? parseFloat(profit.max_drawdown_abs).toFixed(4) + ' ' + stakeCurrency : null;
+            const drawdown = maxDrawdownPct && maxDrawdownAbs ? `${maxDrawdownPct} (${maxDrawdownAbs})`
+                : (maxDrawdownPct || maxDrawdownAbs || 'N/A');
+
+            let avgTradesPerDay = 'N/A';
+            if (profit.first_trade_timestamp && tradeCount > 0) {
+                const ts = profit.first_trade_timestamp > 1e12 ? profit.first_trade_timestamp : profit.first_trade_timestamp * 1000;
+                const firstDay = new Date(new Date(ts).setUTCHours(0, 0, 0, 0));
+                const today = new Date(new Date().setUTCHours(0, 0, 0, 0));
+                const days = Math.max(1, Math.round((today - firstDay) / (1000 * 60 * 60 * 24)) + 1);
+                avgTradesPerDay = (tradeCount / days).toFixed(2);
+            }
+
             // Build summary line like: Avg Profit 1.624% (∑ 9.747%) in 6 Trades, with an average duration of 0:19:12
             const summaryLine = `Avg Profit ${avgProfitPerTrade} (∑ ${totalProfitPct}) in ${tradeCount} Trades, avg duration ${avgDuration}`;
 
@@ -853,9 +874,13 @@
                 ['Exchange', escapeHtml(exchange)],
                 ['Trading Type', escapeHtml(tradingType)],
                 ['Stake', `${escapeHtml(String(stakeAmount))} ${escapeHtml(stakeCurrency)}`],
+                ['MOT (Max Open Trades)', escapeHtml(String(maxOpenTrades))],
+                ['Coins', escapeHtml(String(numCoins))],
                 ['Total Profit', totalProfit, profit.profit_closed_coin >= 0 ? 'text-success' : 'text-danger'],
                 ['Avg Profit %', avgProfit],
+                ['Max Drawdown', escapeHtml(drawdown), 'text-danger'],
                 ['Total Trades', tradeCount],
+                ['Avg Trades / Day', avgTradesPerDay],
                 ['Win / Loss', `${profit.winning_trades || 0} / ${profit.losing_trades || 0}`],
                 ['Win Rate', winRate],
                 ['Best Pair', escapeHtml(bestPair)],

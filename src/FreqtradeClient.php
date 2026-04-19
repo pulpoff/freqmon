@@ -199,6 +199,14 @@ class FreqtradeClient
     }
 
     /**
+     * Get pair whitelist
+     */
+    public function getWhitelist(): ?array
+    {
+        return $this->get('whitelist');
+    }
+
+    /**
      * Get statistics (durations, reasons)
      */
     public function getStats(): ?array
@@ -249,6 +257,7 @@ class FreqtradeClient
             'config' => null,
             'count' => null,
             'performance' => null,
+            'whitelist' => null,
             'error' => null,
         ];
 
@@ -280,6 +289,7 @@ class FreqtradeClient
         $data['status'] = $this->getStatus();
         $data['balance'] = $this->getBalance();
         $data['performance'] = $this->getPerformance();
+        $data['whitelist'] = $this->getWhitelist();
 
         // Filter config to only essential fields
         $fullConfig = $this->getConfig();
@@ -330,8 +340,8 @@ class FreqtradeClient
         }
 
         $essentialFields = [
-            'strategy', 'stake_currency', 'dry_run',
-            'trading_mode', 'timeframe', 'exchange',
+            'strategy', 'stake_currency', 'stake_amount', 'dry_run',
+            'trading_mode', 'timeframe', 'exchange', 'max_open_trades',
         ];
 
         $filtered = [];
