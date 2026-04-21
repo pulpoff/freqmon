@@ -129,4 +129,10 @@ class Config
         $value = strtoupper($this->getSetting('COINS', 'OFF'));
         return $value === 'ON' || $value === 'TRUE' || $value === '1';
     }
+
+    public function getParallelFetch(): int
+    {
+        $value = (int) $this->getSetting('PARALLEL_FETCH', 5);
+        return max(1, $value);
+    }
 }
