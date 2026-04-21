@@ -132,7 +132,7 @@ class Config
 
     public function getParallelFetch(): int
     {
-        $value = (int) $this->getSetting('PARALLEL_FETCH', 5);
+        $value = (int) $this->getSetting('PARALLEL_FETCH', 20);
         return max(1, $value);
     }
 }

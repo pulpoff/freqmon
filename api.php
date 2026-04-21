@@ -15,6 +15,7 @@ header('Cache-Control: no-cache, must-revalidate');
 require_once __DIR__ . '/src/Config.php';
 require_once __DIR__ . '/src/Cache.php';
 require_once __DIR__ . '/src/FreqtradeClient.php';
+require_once __DIR__ . '/src/ParallelHttp.php';
 require_once __DIR__ . '/src/Dashboard.php';
 
 use FreqtradeDashboard\Config;

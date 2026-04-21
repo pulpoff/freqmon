@@ -301,7 +301,27 @@ class FreqtradeClient
     /**
      * Filter trades to only essential fields to reduce data transfer
      */
+    public static function filterTradeFieldsStatic(?array $tradesData): ?array
+    {
+        return self::filterTradeFieldsImpl($tradesData);
+    }
+
+    public static function filterConfigFieldsStatic(?array $config): ?array
+    {
+        return self::filterConfigFieldsImpl($config);
+    }
+
     private function filterTradeFields(?array $tradesData): ?array
+    {
+        return self::filterTradeFieldsImpl($tradesData);
+    }
+
+    private function filterConfigFields(?array $config): ?array
+    {
+        return self::filterConfigFieldsImpl($config);
+    }
+
+    private static function filterTradeFieldsImpl(?array $tradesData): ?array
     {
         if ($tradesData === null || !isset($tradesData['trades'])) {
             return $tradesData;
@@ -333,7 +353,7 @@ class FreqtradeClient
     /**
      * Filter config to only essential fields to reduce data transfer
      */
-    private function filterConfigFields(?array $config): ?array
+    private static function filterConfigFieldsImpl(?array $config): ?array
     {
         if ($config === null) {
             return null;
