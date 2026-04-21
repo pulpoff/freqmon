@@ -31,156 +31,170 @@ class Dashboard
     }
 
     /**
-     * Fetch data from all servers without caching (internal use)
+     * Fetch data from all servers without caching (internal use).
+     *
+     * Runs three parallel batches via curl_multi:
+     *   1. ping all servers
+     *   2. login for servers that replied to ping
+     *   3. fetch all data endpoints (profit, daily, count, status, balance,
+     *      performance, whitelist, show_config) across all authed servers
+     *   4. fetch trades with a size limit derived from profit.closed_trade_count
      */
     private function fetchAllServersUncached(): array
     {
         $servers = $this->config->getServers();
+        if (empty($servers)) {
+            return [];
+        }
+
         $concurrency = $this->config->getParallelFetch();
+        $days = $this->config->getDays();
 
-        if (count($servers) <= 1 || $concurrency <= 1 || !$this->canFork()) {
-            return $this->fetchServersSequential($servers);
-        }
-
-        return $this->fetchServersParallel($servers, $concurrency);
-    }
-
-    private function canFork(): bool
-    {
-        return function_exists('pcntl_fork')
-            && function_exists('pcntl_waitpid')
-            && function_exists('pcntl_signal');
-    }
-
-    private function fetchServersSequential(array $servers): array
-    {
         $results = [];
-        foreach ($servers as $num => $serverConfig) {
-            $results[$num] = $this->fetchOneServer($num, $serverConfig);
+        foreach ($servers as $num => $cfg) {
+            $results[$num] = $this->emptyServerData($num, $cfg);
         }
+
+        // Phase 1: ping
+        $pingReqs = [];
+        foreach ($servers as $num => $cfg) {
+            $pingReqs[] = [
+                'id' => $num,
+                'url' => $this->baseUrl($cfg['host']) . '/api/v1/ping',
+                'method' => 'GET',
+                'timeout' => 5,
+                'connect_timeout' => 3,
+            ];
+        }
+        $pingResp = ParallelHttp::run($pingReqs, $concurrency);
+        foreach ($servers as $num => $cfg) {
+            $r = $pingResp[$num] ?? null;
+            if ($r && $r['status'] === 200) {
+                $results[$num]['online'] = true;
+            } else {
+                $results[$num]['error'] = 'Server offline';
+            }
+        }
+
+        // Phase 2: login
+        $loginReqs = [];
+        foreach ($servers as $num => $cfg) {
+            if (!$results[$num]['online']) continue;
+            $loginReqs[] = [
+                'id' => $num,
+                'url' => $this->baseUrl($cfg['host']) . '/api/v1/token/login',
+                'method' => 'POST',
+                'userpwd' => $cfg['username'] . ':' . $cfg['password'],
+                'headers' => ['Content-Type: application/json'],
+                'timeout' => 10,
+                'connect_timeout' => 5,
+            ];
+        }
+        $loginResp = ParallelHttp::run($loginReqs, $concurrency);
+
+        $tokens = [];
+        foreach ($loginReqs as $req) {
+            $num = $req['id'];
+            $r = $loginResp[$num] ?? null;
+            if ($r && $r['status'] === 200 && !empty($r['body'])) {
+                $json = json_decode($r['body'], true);
+                if (is_array($json) && isset($json['access_token'])) {
+                    $tokens[$num] = $json['access_token'];
+                    continue;
+                }
+            }
+            $msg = $r['error'] ?? ('HTTP ' . ($r['status'] ?? 0));
+            $results[$num]['error'] = 'Authentication failed: ' . $msg;
+        }
+
+        // Phase 3: data endpoints (each server gets the same set of reads)
+        $endpoints = [
+            'profit'      => ['path' => 'profit'],
+            'daily'       => ['path' => 'daily', 'query' => ['timescale' => $days]],
+            'count'       => ['path' => 'count'],
+            'status'      => ['path' => 'status'],
+            'balance'     => ['path' => 'balance'],
+            'performance' => ['path' => 'performance'],
+            'whitelist'   => ['path' => 'whitelist'],
+            'config'      => ['path' => 'show_config'],
+        ];
+
+        $dataReqs = [];
+        foreach ($tokens as $num => $token) {
+            $base = $this->baseUrl($servers[$num]['host']) . '/api/v1/';
+            $headers = ['Authorization: Bearer ' . $token, 'Content-Type: application/json'];
+            foreach ($endpoints as $key => $ep) {
+                $url = $base . $ep['path'];
+                if (!empty($ep['query'])) {
+                    $url .= '?' . http_build_query($ep['query']);
+                }
+                $dataReqs[] = [
+                    'id' => $num . '|' . $key,
+                    'url' => $url,
+                    'method' => 'GET',
+                    'headers' => $headers,
+                    'timeout' => 10,
+                    'connect_timeout' => 5,
+                ];
+            }
+        }
+        $dataResp = ParallelHttp::run($dataReqs, $concurrency);
+
+        foreach ($tokens as $num => $_) {
+            foreach ($endpoints as $key => $_ep) {
+                $r = $dataResp[$num . '|' . $key] ?? null;
+                if (!$r || $r['status'] !== 200 || !is_string($r['body'])) {
+                    continue;
+                }
+                $json = json_decode($r['body'], true);
+                if ($key === 'config') {
+                    $json = FreqtradeClient::filterConfigFieldsStatic($json);
+                }
+                $results[$num][$key] = $json;
+            }
+        }
+
+        // Phase 4: trades (limit depends on profit.closed_trade_count)
+        $tradeReqs = [];
+        foreach ($tokens as $num => $token) {
+            $profit = $results[$num]['profit'] ?? null;
+            $limit = 50;
+            if (is_array($profit) && isset($profit['closed_trade_count'])) {
+                $limit = max(50, (int) $profit['closed_trade_count'] + 20);
+            }
+            $url = $this->baseUrl($servers[$num]['host']) . '/api/v1/trades?'
+                . http_build_query(['limit' => $limit, 'offset' => 0]);
+            $tradeReqs[] = [
+                'id' => $num,
+                'url' => $url,
+                'method' => 'GET',
+                'headers' => ['Authorization: Bearer ' . $token, 'Content-Type: application/json'],
+                'timeout' => 15,
+                'connect_timeout' => 5,
+            ];
+        }
+        $tradeResp = ParallelHttp::run($tradeReqs, $concurrency);
+        foreach ($tradeResp as $num => $r) {
+            if ($r['status'] === 200 && !empty($r['body'])) {
+                $json = json_decode($r['body'], true);
+                $results[$num]['trades'] = FreqtradeClient::filterTradeFieldsStatic(is_array($json) ? $json : null);
+            }
+        }
+
         return $results;
     }
 
-    private function fetchOneServer(int $num, array $serverConfig): array
+    private function baseUrl(string $host): string
     {
-        $client = new FreqtradeClient(
-            $serverConfig['host'],
-            $serverConfig['username'],
-            $serverConfig['password']
-        );
-
-        $data = $client->getDashboardData();
-        $data['name'] = $serverConfig['name'];
-        $data['host'] = $serverConfig['host'];
-        $data['server_num'] = $num;
-        $data['url'] = $serverConfig['url'] ?? null;
-        return $data;
+        $host = rtrim($host, '/');
+        if (!str_starts_with($host, 'http://') && !str_starts_with($host, 'https://')) {
+            $host = 'http://' . $host;
+        }
+        return $host;
     }
 
-    /**
-     * Fetch servers concurrently using pcntl_fork, with file-based IPC.
-     * Limits the number of simultaneous children to $maxConcurrency.
-     */
-    private function fetchServersParallel(array $servers, int $maxConcurrency): array
+    private function emptyServerData(int $num, array $cfg): array
     {
-        $tmpDir = sys_get_temp_dir() . '/freqmon_' . bin2hex(random_bytes(6));
-        if (!@mkdir($tmpDir, 0700, true)) {
-            return $this->fetchServersSequential($servers);
-        }
-
-        $results = [];
-        $pending = [];
-        foreach ($servers as $num => $serverConfig) {
-            $pending[] = [$num, $serverConfig];
-        }
-        $running = []; // pid => num
-
-        try {
-            while (!empty($pending) || !empty($running)) {
-                while (count($running) < $maxConcurrency && !empty($pending)) {
-                    [$num, $serverConfig] = array_shift($pending);
-                    $pid = @pcntl_fork();
-
-                    if ($pid === -1) {
-                        // Fork failed: run this one inline and continue
-                        $results[$num] = $this->fetchOneServer($num, $serverConfig);
-                        continue;
-                    }
-
-                    if ($pid === 0) {
-                        $this->runChild($num, $serverConfig, $tmpDir);
-                    }
-
-                    $running[$pid] = $num;
-                }
-
-                if (!empty($running)) {
-                    $status = 0;
-                    $pid = pcntl_waitpid(-1, $status);
-                    if ($pid <= 0) {
-                        break;
-                    }
-                    if (!isset($running[$pid])) {
-                        continue;
-                    }
-                    $num = $running[$pid];
-                    unset($running[$pid]);
-                    $results[$num] = $this->readChildResult($tmpDir, $num, $servers[$num]);
-                }
-            }
-        } finally {
-            $this->cleanupDir($tmpDir);
-        }
-
-        // Preserve original ordering
-        $ordered = [];
-        foreach ($servers as $num => $_) {
-            if (isset($results[$num])) {
-                $ordered[$num] = $results[$num];
-            }
-        }
-        return $ordered;
-    }
-
-    /**
-     * Child process entry point: fetches one server, writes serialized result, exits.
-     * Never returns.
-     */
-    private function runChild(int $num, array $serverConfig, string $tmpDir): void
-    {
-        // Don't let warnings leak into the HTTP response stream shared with parent
-        ini_set('display_errors', '0');
-        $target = $tmpDir . '/' . $num . '.ser';
-        try {
-            $data = $this->fetchOneServer($num, $serverConfig);
-            @file_put_contents($target, serialize($data));
-        } catch (\Throwable $e) {
-            @file_put_contents($tmpDir . '/' . $num . '.err', $e->getMessage());
-        }
-        exit(0);
-    }
-
-    private function readChildResult(string $tmpDir, int $num, array $serverConfig): array
-    {
-        $file = $tmpDir . '/' . $num . '.ser';
-        if (is_file($file)) {
-            $raw = @file_get_contents($file);
-            @unlink($file);
-            if ($raw !== false) {
-                $data = @unserialize($raw);
-                if (is_array($data)) {
-                    return $data;
-                }
-            }
-        }
-
-        $errFile = $tmpDir . '/' . $num . '.err';
-        $error = 'Parallel fetch failed';
-        if (is_file($errFile)) {
-            $error = @file_get_contents($errFile) ?: $error;
-            @unlink($errFile);
-        }
-
         return [
             'online' => false,
             'profit' => null,
@@ -192,24 +206,12 @@ class Dashboard
             'count' => null,
             'performance' => null,
             'whitelist' => null,
-            'error' => $error,
-            'name' => $serverConfig['name'],
-            'host' => $serverConfig['host'],
+            'error' => null,
+            'name' => $cfg['name'],
+            'host' => $cfg['host'],
             'server_num' => $num,
-            'url' => $serverConfig['url'] ?? null,
+            'url' => $cfg['url'] ?? null,
         ];
-    }
-
-    private function cleanupDir(string $dir): void
-    {
-        if (!is_dir($dir)) {
-            return;
-        }
-        $entries = glob($dir . '/*') ?: [];
-        foreach ($entries as $entry) {
-            @unlink($entry);
-        }
-        @rmdir($dir);
     }
 
     /**
