@@ -36,25 +36,180 @@ class Dashboard
     private function fetchAllServersUncached(): array
     {
         $servers = $this->config->getServers();
-        $results = [];
+        $concurrency = $this->config->getParallelFetch();
 
-        foreach ($servers as $num => $serverConfig) {
-            $client = new FreqtradeClient(
-                $serverConfig['host'],
-                $serverConfig['username'],
-                $serverConfig['password']
-            );
-
-            $data = $client->getDashboardData();
-            $data['name'] = $serverConfig['name'];
-            $data['host'] = $serverConfig['host'];
-            $data['server_num'] = $num;
-            $data['url'] = $serverConfig['url'] ?? null;
-
-            $results[$num] = $data;
+        if (count($servers) <= 1 || $concurrency <= 1 || !$this->canFork()) {
+            return $this->fetchServersSequential($servers);
         }
 
+        return $this->fetchServersParallel($servers, $concurrency);
+    }
+
+    private function canFork(): bool
+    {
+        return function_exists('pcntl_fork')
+            && function_exists('pcntl_waitpid')
+            && function_exists('pcntl_signal');
+    }
+
+    private function fetchServersSequential(array $servers): array
+    {
+        $results = [];
+        foreach ($servers as $num => $serverConfig) {
+            $results[$num] = $this->fetchOneServer($num, $serverConfig);
+        }
         return $results;
+    }
+
+    private function fetchOneServer(int $num, array $serverConfig): array
+    {
+        $client = new FreqtradeClient(
+            $serverConfig['host'],
+            $serverConfig['username'],
+            $serverConfig['password']
+        );
+
+        $data = $client->getDashboardData();
+        $data['name'] = $serverConfig['name'];
+        $data['host'] = $serverConfig['host'];
+        $data['server_num'] = $num;
+        $data['url'] = $serverConfig['url'] ?? null;
+        return $data;
+    }
+
+    /**
+     * Fetch servers concurrently using pcntl_fork, with file-based IPC.
+     * Limits the number of simultaneous children to $maxConcurrency.
+     */
+    private function fetchServersParallel(array $servers, int $maxConcurrency): array
+    {
+        $tmpDir = sys_get_temp_dir() . '/freqmon_' . bin2hex(random_bytes(6));
+        if (!@mkdir($tmpDir, 0700, true)) {
+            return $this->fetchServersSequential($servers);
+        }
+
+        $results = [];
+        $pending = [];
+        foreach ($servers as $num => $serverConfig) {
+            $pending[] = [$num, $serverConfig];
+        }
+        $running = []; // pid => num
+
+        try {
+            while (!empty($pending) || !empty($running)) {
+                while (count($running) < $maxConcurrency && !empty($pending)) {
+                    [$num, $serverConfig] = array_shift($pending);
+                    $pid = @pcntl_fork();
+
+                    if ($pid === -1) {
+                        // Fork failed: run this one inline and continue
+                        $results[$num] = $this->fetchOneServer($num, $serverConfig);
+                        continue;
+                    }
+
+                    if ($pid === 0) {
+                        $this->runChild($num, $serverConfig, $tmpDir);
+                    }
+
+                    $running[$pid] = $num;
+                }
+
+                if (!empty($running)) {
+                    $status = 0;
+                    $pid = pcntl_waitpid(-1, $status);
+                    if ($pid <= 0) {
+                        break;
+                    }
+                    if (!isset($running[$pid])) {
+                        continue;
+                    }
+                    $num = $running[$pid];
+                    unset($running[$pid]);
+                    $results[$num] = $this->readChildResult($tmpDir, $num, $servers[$num]);
+                }
+            }
+        } finally {
+            $this->cleanupDir($tmpDir);
+        }
+
+        // Preserve original ordering
+        $ordered = [];
+        foreach ($servers as $num => $_) {
+            if (isset($results[$num])) {
+                $ordered[$num] = $results[$num];
+            }
+        }
+        return $ordered;
+    }
+
+    /**
+     * Child process entry point: fetches one server, writes serialized result, exits.
+     * Never returns.
+     */
+    private function runChild(int $num, array $serverConfig, string $tmpDir): void
+    {
+        // Don't let warnings leak into the HTTP response stream shared with parent
+        ini_set('display_errors', '0');
+        $target = $tmpDir . '/' . $num . '.ser';
+        try {
+            $data = $this->fetchOneServer($num, $serverConfig);
+            @file_put_contents($target, serialize($data));
+        } catch (\Throwable $e) {
+            @file_put_contents($tmpDir . '/' . $num . '.err', $e->getMessage());
+        }
+        exit(0);
+    }
+
+    private function readChildResult(string $tmpDir, int $num, array $serverConfig): array
+    {
+        $file = $tmpDir . '/' . $num . '.ser';
+        if (is_file($file)) {
+            $raw = @file_get_contents($file);
+            @unlink($file);
+            if ($raw !== false) {
+                $data = @unserialize($raw);
+                if (is_array($data)) {
+                    return $data;
+                }
+            }
+        }
+
+        $errFile = $tmpDir . '/' . $num . '.err';
+        $error = 'Parallel fetch failed';
+        if (is_file($errFile)) {
+            $error = @file_get_contents($errFile) ?: $error;
+            @unlink($errFile);
+        }
+
+        return [
+            'online' => false,
+            'profit' => null,
+            'daily' => null,
+            'trades' => null,
+            'status' => null,
+            'balance' => null,
+            'config' => null,
+            'count' => null,
+            'performance' => null,
+            'whitelist' => null,
+            'error' => $error,
+            'name' => $serverConfig['name'],
+            'host' => $serverConfig['host'],
+            'server_num' => $num,
+            'url' => $serverConfig['url'] ?? null,
+        ];
+    }
+
+    private function cleanupDir(string $dir): void
+    {
+        if (!is_dir($dir)) {
+            return;
+        }
+        $entries = glob($dir . '/*') ?: [];
+        foreach ($entries as $entry) {
+            @unlink($entry);
+        }
+        @rmdir($dir);
     }
 
     /**
