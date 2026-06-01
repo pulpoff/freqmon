@@ -641,7 +641,7 @@
     <script>
         const charts = {}, tradeCache = {}, REFRESH_SECONDS = 60;
         let refreshInterval, serverData = {}, previousServerState = {};
-        let soundEnabled = true, coinsEnabled = false, configDays = 20, notifyDuration = 10;
+        let soundEnabled = true, coinsEnabled = false, strategyEnabled = true, configDays = 20, notifyDuration = 10;
 
         // Chime sound using Web Audio API
         let audioContext = null;
@@ -1498,7 +1498,7 @@
                         <div class="server-header">
                             <div>
                                 <h5 class="server-name">${server.url ? `<a href="${escapeHtml(server.url)}" target="_blank" class="server-icon-link" onclick="event.stopPropagation()"><i class="bi bi-database me-1"></i></a><a href="${escapeHtml(server.url)}" target="_blank" class="server-name-link" onclick="event.stopPropagation()">${escapeHtml(server.name)}</a>` : `<i class="bi bi-database me-1 server-icon"></i>${escapeHtml(server.name)}`}<span class="activity-star" id="activity-star-${server.server_num}"><i class="bi bi-star-fill"></i></span></h5>
-                                ${isOnline ? `<div class="strategy-name"><span class="strategy-clickable" onclick="showStrategyInfo(${server.server_num}, event)"><i class="bi bi-cpu me-1"></i>${escapeHtml(strategy)}</span>${daysText ? `<span class="days-badge days-clickable" onclick="showDailyProfit(${server.server_num}, event)">${daysText}</span>` : ''}</div>` : ''}
+                                ${isOnline ? `<div class="strategy-name">${strategyEnabled ? `<span class="strategy-clickable" onclick="showStrategyInfo(${server.server_num}, event)"><i class="bi bi-cpu me-1"></i>${escapeHtml(strategy)}</span>` : ''}${daysText ? `<span class="days-badge days-clickable" onclick="showDailyProfit(${server.server_num}, event)">${daysText}</span>` : ''}</div>` : ''}
                             </div>
                             <div class="d-flex align-items-center gap-2">
                                 ${isOnline && coinsEnabled ? `<span class="coin-icon-btn" onclick="showTradedCoins(${server.server_num}, event)" title="Traded Coins"><i class="bi bi-currency-exchange"></i></span>` : ''}
@@ -1904,6 +1904,7 @@
                 // Update settings
                 soundEnabled = settings.sound_enabled !== false;
                 coinsEnabled = settings.coins_enabled === true;
+                strategyEnabled = settings.strategy_enabled !== false;
                 configDays = settings.days || 20;
                 notifyDuration = settings.notify_duration || 10;
 
