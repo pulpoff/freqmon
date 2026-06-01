@@ -130,6 +130,12 @@ class Config
         return $value === 'ON' || $value === 'TRUE' || $value === '1';
     }
 
+    public function isStrategyEnabled(): bool
+    {
+        $value = strtoupper($this->getSetting('STRATEGY', 'ON'));
+        return $value === 'ON' || $value === 'TRUE' || $value === '1';
+    }
+
     public function getParallelFetch(): int
     {
         $value = (int) $this->getSetting('PARALLEL_FETCH', 20);
