@@ -136,6 +136,12 @@ class Config
         return $value === 'ON' || $value === 'TRUE' || $value === '1';
     }
 
+    public function isLogsEnabled(): bool
+    {
+        $value = strtoupper($this->getSetting('LOGS', 'OFF'));
+        return $value === 'ON' || $value === 'TRUE' || $value === '1';
+    }
+
     public function getParallelFetch(): int
     {
         $value = (int) $this->getSetting('PARALLEL_FETCH', 20);

@@ -235,6 +235,14 @@ class FreqtradeClient
     }
 
     /**
+     * Get freqtrade logs
+     */
+    public function getLogs(int $limit = 500): ?array
+    {
+        return $this->get('logs', ['limit' => $limit]);
+    }
+
+    /**
      * Get last error
      */
     public function getLastError(): array

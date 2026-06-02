@@ -116,6 +116,57 @@ try {
         exit;
     }
     
+    // Handle logs request
+    if ($action === 'logs') {
+        ob_clean(); // Clear any previous output
+
+        if (!$config->isLogsEnabled()) {
+            echo json_encode(['success' => false, 'error' => 'Logs are disabled']);
+            exit;
+        }
+
+        $serverNum = isset($_GET['server']) ? intval($_GET['server']) : 1;
+        $limit = isset($_GET['limit']) ? intval($_GET['limit']) : 500;
+        $limit = max(1, min($limit, 1000));
+
+        $servers = $config->getServers();
+        if (!isset($servers[$serverNum])) {
+            echo json_encode(['success' => false, 'error' => 'Server not found']);
+            exit;
+        }
+
+        $serverConfig = $servers[$serverNum];
+
+        $cache = Cache::getInstance();
+        $cacheKey = "logs_{$serverNum}_{$limit}";
+
+        $result = $cache->remember($cacheKey, function () use ($serverConfig, $limit) {
+            $client = new FreqtradeClient(
+                $serverConfig['host'],
+                $serverConfig['username'],
+                $serverConfig['password']
+            );
+
+            $logs = $client->getLogs($limit);
+
+            if ($logs === null) {
+                $error = $client->getLastError();
+                return [
+                    'success' => false,
+                    'error' => 'Failed to fetch logs: ' . ($error['message'] ?? 'Unknown error'),
+                ];
+            }
+
+            return [
+                'success' => true,
+                'data' => $logs
+            ];
+        }, 10); // 10 seconds TTL for logs
+
+        echo json_encode($result);
+        exit;
+    }
+
     $dashboard = new Dashboard();
     $serversData = $dashboard->fetchAllServers();
     $totals = $dashboard->getTotals();
@@ -141,6 +192,7 @@ try {
             'sound_enabled' => $config->isSoundEnabled(),
             'coins_enabled' => $config->isCoinsEnabled(),
             'strategy_enabled' => $config->isStrategyEnabled(),
+            'logs_enabled' => $config->isLogsEnabled(),
             'days' => $config->getDays(),
             'notify_duration' => $config->getNotifyDuration(),
         ],
