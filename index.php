@@ -541,13 +541,43 @@
         <div class="modal-content" onclick="event.stopPropagation()">
             <div class="modal-header">
                 <h5 id="modalTitle">Strategy Info</h5>
-                <button class="modal-close" onclick="closeModal()">&times;</button>
+                <div class="d-flex align-items-center gap-2">
+                    <button class="logs-btn" id="strategyLogsBtn" style="display:none" onclick="showLogs(currentStrategyServer, event)"><i class="bi bi-card-text me-1"></i>Logs</button>
+                    <button class="modal-close" onclick="closeModal()">&times;</button>
+                </div>
             </div>
             <div class="modal-body" id="modalBody">
                 <!-- Info will be inserted here -->
             </div>
         </div>
     </div>
+
+    <!-- Logs Modal -->
+    <div class="modal-overlay" id="logsModal" onclick="closeLogsModal(event)">
+        <div class="logs-modal-content" onclick="event.stopPropagation()">
+            <div class="modal-header">
+                <h5 id="logsModalTitle">Logs</h5>
+                <button class="modal-close" onclick="closeLogsModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="logsModalBody">
+                <div class="trade-loading">Loading logs...</div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .logs-btn { background: var(--bg-tertiary); border: 1px solid var(--border-color); color: var(--text-primary); font-size: 0.7rem; padding: 0.2rem 0.6rem; border-radius: 4px; cursor: pointer; white-space: nowrap; }
+        .logs-btn:hover { border-color: var(--accent-blue); color: #fff; }
+        .logs-modal-content { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; max-width: 900px; width: 94%; max-height: 85vh; display: flex; flex-direction: column; }
+        .logs-modal-content .modal-body { overflow: auto; }
+        .logs-output { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.72rem; line-height: 1.35; white-space: pre-wrap; word-break: break-word; margin: 0; color: var(--text-primary); }
+        .log-line { padding: 1px 0; }
+        .log-time { color: var(--text-secondary); }
+        .log-lvl-INFO { color: var(--accent-blue); }
+        .log-lvl-WARNING { color: var(--accent-yellow, #d29922); }
+        .log-lvl-ERROR, .log-lvl-CRITICAL { color: var(--accent-red); }
+        .log-lvl-DEBUG { color: var(--text-secondary); }
+    </style>
 
     <!-- Trade Chart Modal -->
     <div class="modal-overlay" id="tradeModal" onclick="closeTradeModal(event)">
@@ -641,7 +671,7 @@
     <script>
         const charts = {}, tradeCache = {}, REFRESH_SECONDS = 60;
         let refreshInterval, serverData = {}, previousServerState = {};
-        let soundEnabled = true, coinsEnabled = false, strategyEnabled = true, configDays = 20, notifyDuration = 10;
+        let soundEnabled = true, coinsEnabled = false, strategyEnabled = true, logsEnabled = false, configDays = 20, notifyDuration = 10;
 
         // Chime sound using Web Audio API
         let audioContext = null;
@@ -810,10 +840,16 @@
             }
         }
 
+        let currentStrategyServer = null;
+
         function showStrategyInfo(serverNum, event) {
             event.stopPropagation();
             const server = serverData[serverNum];
             if (!server) return;
+
+            currentStrategyServer = serverNum;
+            const logsBtn = document.getElementById('strategyLogsBtn');
+            if (logsBtn) logsBtn.style.display = logsEnabled ? '' : 'none';
             
             const profit = server.profit || {};
             const config = server.config || {};
@@ -894,6 +930,45 @@
             document.getElementById('strategyModal').classList.add('show');
         }
 
+        async function showLogs(serverNum, event) {
+            if (event) event.stopPropagation();
+            if (serverNum === null || serverNum === undefined) return;
+            const server = serverData[serverNum];
+
+            const title = document.getElementById('logsModalTitle');
+            const body = document.getElementById('logsModalBody');
+            const strategy = server?.config?.strategy || '';
+            title.innerHTML = `<i class="bi bi-card-text me-1"></i>${escapeHtml(server?.name || 'Server')}${strategy ? ' - ' + escapeHtml(strategy) : ''} Logs`;
+            body.innerHTML = '<div class="trade-loading">Loading logs...</div>';
+            document.getElementById('logsModal').classList.add('show');
+
+            try {
+                const response = await fetch(`api.php?action=logs&server=${encodeURIComponent(serverNum)}`);
+                const result = await response.json();
+                if (!result.success) {
+                    body.innerHTML = `<div class="trade-loading">${escapeHtml(result.error || 'Failed to load logs')}</div>`;
+                    return;
+                }
+                // Freqtrade /logs returns { log_count, logs: [[date, created, name, level, message], ...] }
+                const logs = (result.data && result.data.logs) || [];
+                if (!logs.length) {
+                    body.innerHTML = '<div class="trade-loading">No logs available</div>';
+                    return;
+                }
+                const lines = logs.map(entry => {
+                    const date = entry[0] || '';
+                    const level = entry[3] || '';
+                    const message = entry[4] || '';
+                    return `<div class="log-line"><span class="log-time">${escapeHtml(date)}</span> <span class="log-lvl-${escapeHtml(level)}">${escapeHtml(level)}</span> ${escapeHtml(message)}</div>`;
+                }).join('');
+                body.innerHTML = `<div class="logs-output">${lines}</div>`;
+                // Scroll to the latest log line
+                body.scrollTop = body.scrollHeight;
+            } catch (e) {
+                body.innerHTML = `<div class="trade-loading">Error loading logs: ${escapeHtml(String(e))}</div>`;
+            }
+        }
+
         // Generic modal close handler
         function closeModalById(id, event) {
             if (event && event.target !== event.currentTarget) return;
@@ -901,6 +976,7 @@
             if (id === 'tradeModal' && tradeChart) { tradeChart.destroy(); tradeChart = null; }
         }
         function closeModal(e) { closeModalById('strategyModal', e); }
+        function closeLogsModal(e) { closeModalById('logsModal', e); }
         function closeTradeModal(e) { closeModalById('tradeModal', e); }
         function closeOpenTradesModal(e) { closeModalById('openTradesModal', e); }
         function closeDailyProfitModal(e) { closeModalById('dailyProfitModal', e); }
@@ -1905,6 +1981,7 @@
                 soundEnabled = settings.sound_enabled !== false;
                 coinsEnabled = settings.coins_enabled === true;
                 strategyEnabled = settings.strategy_enabled !== false;
+                logsEnabled = settings.logs_enabled === true;
                 configDays = settings.days || 20;
                 notifyDuration = settings.notify_duration || 10;
 

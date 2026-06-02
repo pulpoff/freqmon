@@ -72,6 +72,7 @@ SUMMARY=OFF              # Show summary stats bar at top (ON/OFF, default: OFF)
 SOUND=ON                 # Play chime sound for new trade notifications (ON/OFF, default: ON)
 COINS=OFF                # Show traded coins icon on server cards (ON/OFF, default: OFF)
 STRATEGY=ON              # Show strategy name on server cards; OFF shows only days running (ON/OFF, default: ON)
+LOGS=OFF                 # Show "Logs" button in strategy modal to view freqtrade logs (ON/OFF, default: OFF)
 DAYS=20                  # Number of days to show in charts (default: 20)
 NOTIFY=10                # Duration in seconds to show activity star after new trades (default: 10)
 
