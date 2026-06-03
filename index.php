@@ -48,6 +48,12 @@
             color: #ffffff;
         }
         
+        .stat-sub {
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-left: 0.3rem;
+        }
+
         .stat-label {
             color: #a0a8b2;
             font-size: 0.65rem;
@@ -500,19 +506,19 @@
             </div>
             <div class="col-6 col-md-4 col-xl-2">
                 <div class="card stat-card">
-                    <div class="stat-value text-profit" id="totalProfit">+0.00</div>
+                    <div class="stat-value"><span id="totalProfit" class="text-profit">+0.00</span><span class="stat-sub" id="totalProfitToday"></span></div>
                     <div class="stat-label">Total Profit</div>
                 </div>
             </div>
             <div class="col-6 col-md-4 col-xl-2">
                 <div class="card stat-card">
-                    <div class="stat-value" id="avgProfit">+0.00%</div>
-                    <div class="stat-label">Avg Profit %</div>
+                    <div class="stat-value" id="avgDuration">-</div>
+                    <div class="stat-label">Avg Duration</div>
                 </div>
             </div>
             <div class="col-6 col-md-4 col-xl-2">
                 <div class="card stat-card">
-                    <div class="stat-value" id="closedTrades">0</div>
+                    <div class="stat-value"><span id="closedTrades">0</span><span class="stat-sub text-info" id="closedTradesToday"></span></div>
                     <div class="stat-label">Closed Trades</div>
                 </div>
             </div>
@@ -1246,30 +1252,34 @@
             try {
                 const openDate = parseUTCDate(trade.open_date);
                 const closeDate = isOpenTrade ? new Date() : parseUTCDate(trade.close_date);
-                const duration = closeDate - openDate;
-                
-                // Determine timeframe based on trade duration
-                let timeframe = '1m';
-                if (duration > 86400000) timeframe = '1h'; // > 1 day
-                else if (duration > 7200000) timeframe = '15m'; // > 2 hours
-                else if (duration > 3600000) timeframe = '5m'; // > 1 hour
-                
-                // Calculate time range around the trade
-                const candleDurations = { '1m': 60000, '5m': 300000, '15m': 900000, '1h': 3600000 };
-                const candleMs = candleDurations[timeframe];
-                const paddingTime = Math.max(duration * 2, candleMs * 30);
-                
+                const duration = Math.max(closeDate - openDate, 60000);
+
+                // Compact window: from trade start to now/close with small padding so
+                // the entry marker and current price aren't on the very edge.
+                const paddingTime = Math.min(Math.max(duration * 0.06, 60000), 86400000); // 6%, clamp 1min..1day
                 const startTime = new Date(openDate.getTime() - paddingTime);
                 const endTime = new Date(closeDate.getTime() + paddingTime);
-                
+                const windowMs = endTime - startTime;
+
+                // Pick the smallest interval that keeps the whole window under ~500 candles
+                // (Binance returns at most 500 candles per request), so the line always
+                // spans from entry to now regardless of how long the trade has been open.
+                const intervalTiers = [
+                    ['1m', 60000], ['5m', 300000], ['15m', 900000], ['30m', 1800000],
+                    ['1h', 3600000], ['2h', 7200000], ['4h', 14400000],
+                    ['6h', 21600000], ['12h', 43200000], ['1d', 86400000]
+                ];
+                let interval = '1d';
+                for (const [name, ms] of intervalTiers) {
+                    if (windowMs / ms <= 500) { interval = name; break; }
+                }
+
                 let labels, prices;
-                
+
                 // Use Binance API for chart data
                 console.log('Fetching chart data from Binance...');
                 console.log('Trade:', trade.pair, 'Open:', openDate.toISOString(), 'Close:', closeDate.toISOString());
-                
-                const intervalMap = { '1m': '1m', '5m': '5m', '15m': '15m', '1h': '1h' };
-                const interval = intervalMap[timeframe] || '5m';
+                console.log('Querying interval:', interval, 'window(days):', (windowMs / 86400000).toFixed(2));
                 
                 // Build symbol - handle USDT futures format (e.g., "INJ/USDT:USDT" -> "INJUSDT")
                 let symbol = trade.pair
@@ -1490,6 +1500,40 @@
         
         function getProfitClass(value) {
             return parseFloat(value) >= 0 ? 'text-profit' : 'text-loss';
+        }
+
+        // Parse freqtrade avg_duration string (e.g. "0:19:12" or "1 day, 2:03:04") to seconds
+        function parseDurationToSeconds(str) {
+            if (!str || typeof str !== 'string') return null;
+            let days = 0;
+            let rest = str.trim();
+            const dayMatch = rest.match(/(\d+)\s*day/);
+            if (dayMatch) {
+                days = parseInt(dayMatch[1], 10);
+                const idx = rest.indexOf(',');
+                rest = idx !== -1 ? rest.slice(idx + 1).trim() : '';
+            }
+            let h = 0, m = 0, s = 0;
+            if (rest) {
+                const parts = rest.split(':').map(p => parseInt(p, 10) || 0);
+                if (parts.length === 3) { [h, m, s] = parts; }
+                else if (parts.length === 2) { [m, s] = parts; }
+                else if (parts.length === 1) { [s] = parts; }
+            }
+            return days * 86400 + h * 3600 + m * 60 + s;
+        }
+
+        // Format seconds to a compact duration (e.g. "1d 2h", "3h 12m", "12m 5s")
+        function formatDuration(seconds) {
+            if (seconds === null || seconds === undefined || isNaN(seconds) || seconds <= 0) return '-';
+            const d = Math.floor(seconds / 86400);
+            const h = Math.floor((seconds % 86400) / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            if (d > 0) return `${d}d ${h}h`;
+            if (h > 0) return `${h}h ${m}m`;
+            if (m > 0) return `${m}m ${s}s`;
+            return `${s}s`;
         }
         
         function createServerCard(server) {
@@ -1994,17 +2038,47 @@
                     document.getElementById('serversOnline').textContent =
                         `${totals.servers_online}/${totals.servers_total}`;
 
+                    // Aggregate today's profit / closed trades and average duration across servers
+                    const today = new Date();
+                    const todayStr = today.getFullYear() + '-' +
+                        String(today.getMonth() + 1).padStart(2, '0') + '-' +
+                        String(today.getDate()).padStart(2, '0');
+                    let profitToday = 0, closedToday = 0;
+                    let durationWeightedSum = 0, durationTradeCount = 0;
+                    for (const s of Object.values(data.servers || {})) {
+                        const sTrades = s.trades?.trades || [];
+                        for (const t of sTrades) {
+                            if (!t.close_date || t.is_open) continue;
+                            if (t.close_date.substring(0, 10) === todayStr) {
+                                profitToday += t.profit_abs || 0;
+                                closedToday += 1;
+                            }
+                        }
+                        const dur = parseDurationToSeconds(s.profit?.avg_duration);
+                        const cc = s.profit?.closed_trade_count || 0;
+                        if (dur !== null && cc > 0) {
+                            durationWeightedSum += dur * cc;
+                            durationTradeCount += cc;
+                        }
+                    }
+
                     const totalProfit = totals.total_profit || 0;
                     const profitEl = document.getElementById('totalProfit');
                     profitEl.textContent = formatProfit(totalProfit);
-                    profitEl.className = `stat-value ${getProfitClass(totalProfit)}`;
+                    profitEl.className = getProfitClass(totalProfit);
+                    const profitTodayEl = document.getElementById('totalProfitToday');
+                    if (profitToday !== 0) {
+                        profitTodayEl.textContent = formatProfit(profitToday);
+                        profitTodayEl.className = `stat-sub ${getProfitClass(profitToday)}`;
+                    } else {
+                        profitTodayEl.textContent = '';
+                    }
 
-                    const avgProfit = totals.total_profit_percent || 0;
-                    const avgEl = document.getElementById('avgProfit');
-                    avgEl.textContent = formatPercent(avgProfit);
-                    avgEl.className = `stat-value ${getProfitClass(avgProfit)}`;
+                    const avgDuration = durationTradeCount > 0 ? durationWeightedSum / durationTradeCount : null;
+                    document.getElementById('avgDuration').textContent = formatDuration(avgDuration);
 
                     document.getElementById('closedTrades').textContent = totals.total_trades_closed || 0;
+                    document.getElementById('closedTradesToday').textContent = closedToday > 0 ? `+${closedToday}` : '';
                     document.getElementById('openTrades').textContent = totals.total_open_trades || 0;
                     document.getElementById('winRate').textContent = (totals.win_rate || 0) + '%';
                 } else {
