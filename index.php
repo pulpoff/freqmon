@@ -1326,7 +1326,14 @@
                 if (!Array.isArray(klines) || klines.length === 0) {
                     throw new Error('No chart data available from Binance');
                 }
-                
+
+                // Keep only candles within the requested window (safety net so a stray
+                // candle outside the window can't stretch the axis or flatten the line)
+                klines = klines.filter(k => k[0] >= startTime.getTime() && k[0] <= endTime.getTime());
+                if (klines.length === 0) {
+                    throw new Error('No chart data available for this period');
+                }
+
                 // Verify data roughly matches trade prices (sanity check)
                 const firstPrice = parseFloat(klines[0][4]);
                 const currentPrice = isOpenTrade ? trade.current_rate : trade.close_rate;
@@ -1338,6 +1345,14 @@
 
                 labels = klines.map(k => new Date(k[0]));
                 prices = labels.map((t, i) => ({ x: t, y: parseFloat(klines[i][4]) }));
+
+                // Frame the Y axis around both the price line and the trade markers so the
+                // entry/exit/current points are always visible and sensibly centered.
+                const tradePts = [trade.open_rate, currentPrice].filter(v => typeof v === 'number' && !isNaN(v));
+                const yValues = prices.map(p => p.y).filter(v => !isNaN(v)).concat(tradePts);
+                const yMin = Math.min(...yValues);
+                const yMax = Math.max(...yValues);
+                const yPad = (yMax - yMin) * 0.12 || Math.abs(yMax) * 0.01 || 0.01;
 
                 // Create point markers at actual trade times and prices (using exact coordinates)
                 const entryPoint = [{ x: openDate, y: trade.open_rate }];
@@ -1431,6 +1446,8 @@
                                 ticks: { color: '#8b949e', maxTicksLimit: 8 }
                             },
                             y: {
+                                suggestedMin: yMin - yPad,
+                                suggestedMax: yMax + yPad,
                                 grid: { color: 'rgba(48, 54, 61, 0.5)' },
                                 ticks: { color: '#8b949e' }
                             }
@@ -1679,7 +1696,7 @@
                                         <th>Pair</th>
                                         <th class="text-end">Profit</th>
                                         <th class="text-end">%</th>
-                                        <th>Exit</th>
+                                        <th>Entry</th>
                                         <th>Duration</th>
                                     </tr>
                                 </thead>
@@ -1690,7 +1707,7 @@
                                         const lev = t.leverage && t.leverage > 1 ? parseFloat(t.leverage) : 0;
                                         const leverage = lev > 1 ? ` x${lev % 1 === 0 ? lev : lev.toFixed(2)}` : '';
                                         const arrow = t.is_short ? '<span style="font-size:1.3em;color:#d29922">↓</span>' : '<span style="font-size:1.3em;color:#58a6ff">↑</span>';
-                                        const exitReason = (t.exit_reason || '-').substring(0, 10);
+                                        const entryDate = formatCompactDate(t.open_date);
                                         const tradeId = 's' + server.server_num + '_' + (t.trade_id || (t.pair + '_' + t.open_date).replace(/[^a-zA-Z0-9]/g, '_'));
                                         t._serverNum = server.server_num;
                                         tradeCache[tradeId] = t;
@@ -1699,7 +1716,7 @@
                                         <td><span class="pair-badge trade-link" onclick="event.stopPropagation(); showTradeChart('${tradeId}')">${arrow} ${getCoinName(t.pair)}${leverage}</span></td>
                                         <td class="text-end ${getProfitClass(t.profit_abs)}">${formatProfit(t.profit_abs)}</td>
                                         <td class="text-end ${getProfitClass(t.profit_pct)}">${(t.profit_pct || 0).toFixed(1)}%</td>
-                                        <td><small style="color: #8b949e;">${escapeHtml(exitReason)}</small></td>
+                                        <td><small style="color: #8b949e;">${escapeHtml(entryDate)}</small></td>
                                         <td><small style="color: #8b949e;">${tradeDuration}</small></td>
                                     </tr>
                                     `}).join('')}
