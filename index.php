@@ -1261,9 +1261,11 @@
                 const endTime = new Date(closeDate.getTime() + paddingTime);
                 const windowMs = endTime - startTime;
 
+                // currentPrice is the live (open) or exit (closed) price — used for markers & Y framing
+                const currentPrice = isOpenTrade ? trade.current_rate : trade.close_rate;
+                const refPrice = (trade.open_rate + currentPrice) / 2;
+
                 // Pick the smallest interval that keeps the whole window under ~500 candles
-                // (Binance returns at most 500 candles per request), so the line always
-                // spans from entry to now regardless of how long the trade has been open.
                 const intervalTiers = [
                     ['1m', 60000], ['5m', 300000], ['15m', 900000], ['30m', 1800000],
                     ['1h', 3600000], ['2h', 7200000], ['4h', 14400000],
@@ -1274,77 +1276,55 @@
                     if (windowMs / ms <= 500) { interval = name; break; }
                 }
 
-                let labels, prices;
-
-                // Use Binance API for chart data
-                console.log('Fetching chart data from Binance...');
-                console.log('Trade:', trade.pair, 'Open:', openDate.toISOString(), 'Close:', closeDate.toISOString());
-                console.log('Querying interval:', interval, 'window(days):', (windowMs / 86400000).toFixed(2));
-                
-                // Build symbol - handle USDT futures format (e.g., "INJ/USDT:USDT" -> "INJUSDT")
-                let symbol = trade.pair
-                    .split(':')[0]  // Get base part before : (e.g., "INJ/USDT")
-                    .replace('/', ''); // Remove slash -> "INJUSDT"
-                
-                console.log('Querying symbol:', symbol, 'interval:', interval);
-                
-                let klines = null;
+                const symbol = trade.pair.split(':')[0].replace('/', ''); // "INJ/USDT:USDT" -> "INJUSDT"
                 const isFutures = trade.pair.includes(':');
-                
-                // Try futures first for futures pairs
-                if (isFutures) {
+                console.log('Fetching Binance data for', symbol, 'interval:', interval, 'window(days):', (windowMs / 86400000).toFixed(2));
+
+                // Fetch klines from a Binance base URL, restricted to the trade window
+                async function fetchKlines(base) {
                     try {
-                        const futuresUrl = `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&startTime=${startTime.getTime()}&endTime=${endTime.getTime()}&limit=500`;
-                        console.log('Trying futures:', futuresUrl);
-                        const futuresResponse = await fetch(futuresUrl);
-                        if (futuresResponse.ok) {
-                            klines = await futuresResponse.json();
-                            if (Array.isArray(klines) && klines.length > 0) {
-                                console.log('Got', klines.length, 'candles from futures API');
-                            }
-                        }
-                    } catch (e) {
-                        console.log('Binance futures failed:', e);
-                    }
-                }
-                
-                // Fallback to spot if futures failed or not a futures pair
-                if (!Array.isArray(klines) || klines.length === 0) {
-                    try {
-                        const spotUrl = `https://api.binance.com/api/v3/klines?symbol=${symbol}&interval=${interval}&startTime=${startTime.getTime()}&endTime=${endTime.getTime()}&limit=500`;
-                        console.log('Trying spot:', spotUrl);
-                        const spotResponse = await fetch(spotUrl);
-                        if (spotResponse.ok) {
-                            klines = await spotResponse.json();
-                            console.log('Got', klines?.length || 0, 'candles from spot API');
-                        }
-                    } catch (e) {
-                        console.log('Binance spot failed:', e);
-                    }
-                }
-                
-                if (!Array.isArray(klines) || klines.length === 0) {
-                    throw new Error('No chart data available from Binance');
+                        const url = `${base}?symbol=${symbol}&interval=${interval}&startTime=${startTime.getTime()}&endTime=${endTime.getTime()}&limit=500`;
+                        const r = await fetch(url);
+                        if (!r.ok) return null;
+                        const data = await r.json();
+                        if (!Array.isArray(data) || data.length === 0) return null;
+                        return data.filter(k => k[0] >= startTime.getTime() && k[0] <= endTime.getTime());
+                    } catch (e) { return null; }
                 }
 
-                // Keep only candles within the requested window (safety net so a stray
-                // candle outside the window can't stretch the axis or flatten the line)
-                klines = klines.filter(k => k[0] >= startTime.getTime() && k[0] <= endTime.getTime());
-                if (klines.length === 0) {
+                // Fetch futures and spot in parallel, then pick the series whose prices
+                // actually match this trade. Some coins (e.g. LRC) have a stale/delisted
+                // futures feed that returns a flat, wrong price while spot is correct —
+                // selecting by price proximity fixes those without breaking other coins.
+                const [futData, spotData] = await Promise.all([
+                    isFutures ? fetchKlines('https://fapi.binance.com/fapi/v1/klines') : Promise.resolve(null),
+                    fetchKlines('https://api.binance.com/api/v3/klines')
+                ]);
+
+                const candidates = [];
+                if (futData && futData.length) candidates.push(futData);
+                if (spotData && spotData.length) candidates.push(spotData);
+                if (candidates.length === 0) {
                     throw new Error('No chart data available for this period');
                 }
 
-                // Verify data roughly matches trade prices (sanity check)
-                const firstPrice = parseFloat(klines[0][4]);
-                const currentPrice = isOpenTrade ? trade.current_rate : trade.close_rate;
-                const tradePriceAvg = (trade.open_rate + currentPrice) / 2;
-                const priceDiff = Math.abs(firstPrice - tradePriceAvg) / tradePriceAvg;
-                if (priceDiff > 0.1) { // More than 10% difference
-                    console.warn('Price mismatch! Chart:', firstPrice, 'Trade:', tradePriceAvg, 'Diff:', (priceDiff * 100).toFixed(1) + '%');
+                const medianClose = kl => {
+                    const vals = kl.map(k => parseFloat(k[4])).filter(v => !isNaN(v)).sort((a, b) => a - b);
+                    return vals.length ? vals[Math.floor(vals.length / 2)] : NaN;
+                };
+                let klines = candidates[0];
+                if (candidates.length > 1 && refPrice > 0) {
+                    let best = Infinity;
+                    for (const c of candidates) {
+                        const m = medianClose(c);
+                        if (isNaN(m)) continue;
+                        const diff = Math.abs(m - refPrice) / refPrice;
+                        if (diff < best) { best = diff; klines = c; }
+                    }
                 }
 
-                labels = klines.map(k => new Date(k[0]));
-                prices = labels.map((t, i) => ({ x: t, y: parseFloat(klines[i][4]) }));
+                let labels = klines.map(k => new Date(k[0]));
+                let prices = labels.map((t, i) => ({ x: t, y: parseFloat(klines[i][4]) }));
 
                 // Frame the Y axis around both the price line and the trade markers so the
                 // entry/exit/current points are always visible and sensibly centered.
