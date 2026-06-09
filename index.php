@@ -1265,40 +1265,45 @@
                 const currentPrice = isOpenTrade ? trade.current_rate : trade.close_rate;
                 const refPrice = (trade.open_rate + currentPrice) / 2;
 
-                // Pick the smallest interval that keeps the whole window under ~500 candles
+                // Pick the smallest interval that keeps the whole window under ~1000 candles
+                // (Bybit V5 returns at most 1000 candles per request). Bybit uses minute
+                // numbers for intervals ('1','5','60',...) and 'D'/'W' for day/week.
                 const intervalTiers = [
-                    ['1m', 60000], ['5m', 300000], ['15m', 900000], ['30m', 1800000],
-                    ['1h', 3600000], ['2h', 7200000], ['4h', 14400000],
-                    ['6h', 21600000], ['12h', 43200000], ['1d', 86400000]
+                    ['1', 60000], ['3', 180000], ['5', 300000], ['15', 900000], ['30', 1800000],
+                    ['60', 3600000], ['120', 7200000], ['240', 14400000], ['360', 21600000],
+                    ['720', 43200000], ['D', 86400000], ['W', 604800000]
                 ];
-                let interval = '1d';
+                let interval = 'W';
                 for (const [name, ms] of intervalTiers) {
-                    if (windowMs / ms <= 500) { interval = name; break; }
+                    if (windowMs / ms <= 1000) { interval = name; break; }
                 }
 
-                const symbol = trade.pair.split(':')[0].replace('/', ''); // "INJ/USDT:USDT" -> "INJUSDT"
+                const symbol = trade.pair.split(':')[0].replace('/', ''); // "LRC/USDT:USDT" -> "LRCUSDT"
                 const isFutures = trade.pair.includes(':');
-                console.log('Fetching Binance data for', symbol, 'interval:', interval, 'window(days):', (windowMs / 86400000).toFixed(2));
+                console.log('Fetching Bybit data for', symbol, 'interval:', interval, 'window(days):', (windowMs / 86400000).toFixed(2));
 
-                // Fetch klines from a Binance base URL, restricted to the trade window
-                async function fetchKlines(base) {
+                // Fetch klines from Bybit V5 for a given category (linear = USDT perpetual
+                // futures, spot = spot market), restricted to the trade window. Bybit returns
+                // rows newest-first as [start, open, high, low, close, volume, turnover].
+                async function fetchKlines(category) {
                     try {
-                        const url = `${base}?symbol=${symbol}&interval=${interval}&startTime=${startTime.getTime()}&endTime=${endTime.getTime()}&limit=500`;
+                        const url = `https://api.bybit.com/v5/market/kline?category=${category}&symbol=${symbol}&interval=${interval}&start=${startTime.getTime()}&end=${endTime.getTime()}&limit=1000`;
                         const r = await fetch(url);
                         if (!r.ok) return null;
-                        const data = await r.json();
-                        if (!Array.isArray(data) || data.length === 0) return null;
-                        return data.filter(k => k[0] >= startTime.getTime() && k[0] <= endTime.getTime());
+                        const j = await r.json();
+                        if (!j || j.retCode !== 0 || !j.result || !Array.isArray(j.result.list) || j.result.list.length === 0) return null;
+                        return j.result.list
+                            .map(k => [Number(k[0]), parseFloat(k[1]), parseFloat(k[2]), parseFloat(k[3]), parseFloat(k[4])])
+                            .filter(k => k[0] >= startTime.getTime() && k[0] <= endTime.getTime())
+                            .sort((a, b) => a[0] - b[0]); // ascending by time
                     } catch (e) { return null; }
                 }
 
-                // Fetch futures and spot in parallel, then pick the series whose prices
-                // actually match this trade. Some coins (e.g. LRC) have a stale/delisted
-                // futures feed that returns a flat, wrong price while spot is correct —
-                // selecting by price proximity fixes those without breaking other coins.
+                // Use the bot's market first (linear for futures), with spot as a fallback,
+                // then pick whichever series best matches this trade's price.
                 const [futData, spotData] = await Promise.all([
-                    isFutures ? fetchKlines('https://fapi.binance.com/fapi/v1/klines') : Promise.resolve(null),
-                    fetchKlines('https://api.binance.com/api/v3/klines')
+                    isFutures ? fetchKlines('linear') : Promise.resolve(null),
+                    fetchKlines('spot')
                 ]);
 
                 const candidates = [];
@@ -1309,7 +1314,7 @@
                 }
 
                 const medianClose = kl => {
-                    const vals = kl.map(k => parseFloat(k[4])).filter(v => !isNaN(v)).sort((a, b) => a - b);
+                    const vals = kl.map(k => k[4]).filter(v => !isNaN(v)).sort((a, b) => a - b);
                     return vals.length ? vals[Math.floor(vals.length / 2)] : NaN;
                 };
                 let klines = candidates[0];
@@ -1324,7 +1329,7 @@
                 }
 
                 let labels = klines.map(k => new Date(k[0]));
-                let prices = labels.map((t, i) => ({ x: t, y: parseFloat(klines[i][4]) }));
+                let prices = labels.map((t, i) => ({ x: t, y: klines[i][4] }));
 
                 // Frame the Y axis around both the price line and the trade markers so the
                 // entry/exit/current points are always visible and sensibly centered.
