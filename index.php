@@ -500,8 +500,8 @@
         <div class="row g-3 mb-4" id="summaryStats">
             <div class="col-6 col-md-4 col-xl-2">
                 <div class="card stat-card">
-                    <div class="stat-value" id="serversOnline">-/-</div>
-                    <div class="stat-label">Servers Online</div>
+                    <div class="stat-value" id="totalBalance">-</div>
+                    <div class="stat-label">Total Balance</div>
                 </div>
             </div>
             <div class="col-6 col-md-4 col-xl-2">
@@ -2037,8 +2037,11 @@
                     summaryStats.style.display = '';
                     // Update summary stats
                     const totals = data.totals;
-                    document.getElementById('serversOnline').textContent =
-                        `${totals.servers_online}/${totals.servers_total}`;
+                    const totalBalance = totals.total_stake || 0;
+                    const balanceCurrency = (Array.isArray(totals.currencies) && totals.currencies.length === 1)
+                        ? ' ' + totals.currencies[0] : '';
+                    document.getElementById('totalBalance').textContent =
+                        totalBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + balanceCurrency;
 
                     // Aggregate today's profit / closed trades and average duration across servers
                     const today = new Date();
