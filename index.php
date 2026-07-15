@@ -899,6 +899,10 @@
             const drawdown = maxDrawdownPct && maxDrawdownAbs ? `${maxDrawdownPct} (${maxDrawdownAbs})`
                 : (maxDrawdownPct || maxDrawdownAbs || 'N/A');
 
+            // Underwater = maximum relative drawdown (deepest point below the running peak)
+            const underwater = profit.max_relative_drawdown !== undefined && profit.max_relative_drawdown !== null
+                ? (profit.max_relative_drawdown * 100).toFixed(2) + '%' : 'N/A';
+
             let avgTradesPerDay = 'N/A';
             if (profit.first_trade_timestamp && tradeCount > 0) {
                 const ts = profit.first_trade_timestamp > 1e12 ? profit.first_trade_timestamp : profit.first_trade_timestamp * 1000;
@@ -921,6 +925,7 @@
                 ['Total Profit', totalProfit, profit.profit_closed_coin >= 0 ? 'text-success' : 'text-danger'],
                 ['Avg Profit %', avgProfit],
                 ['Max Drawdown', escapeHtml(drawdown), 'text-danger'],
+                ['Underwater', escapeHtml(underwater), 'text-danger'],
                 ['Total Trades', tradeCount],
                 ['Avg Trades / Day', avgTradesPerDay],
                 ['Win / Loss', `${profit.winning_trades || 0} / ${profit.losing_trades || 0}`],
