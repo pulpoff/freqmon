@@ -899,9 +899,24 @@
             const drawdown = maxDrawdownPct && maxDrawdownAbs ? `${maxDrawdownPct} (${maxDrawdownAbs})`
                 : (maxDrawdownPct || maxDrawdownAbs || 'N/A');
 
-            // Underwater = maximum relative drawdown (deepest point below the running peak)
-            const underwater = profit.max_relative_drawdown !== undefined && profit.max_relative_drawdown !== null
-                ? (profit.max_relative_drawdown * 100).toFixed(2) + '%' : 'N/A';
+            // Underwater = how far current equity sits below its realized high-water mark.
+            // Closed-trade drawdown (Max Drawdown above) is 0 for a 100% win rate, but open
+            // positions can still be underwater, which is what this reflects.
+            // balance.total already includes open-trade unrealized P/L, so the realized
+            // wallet (high-water mark) = balance.total - unrealized.
+            const openPositions = server.status || [];
+            const unrealized = openPositions.reduce((s, t) => s + (t.profit_abs || 0), 0);
+            const walletEquity = (balance.total || 0) - unrealized;
+            let underwater;
+            if (profit.max_relative_drawdown !== undefined && profit.max_relative_drawdown !== null && profit.max_relative_drawdown > 0) {
+                underwater = (profit.max_relative_drawdown * 100).toFixed(2) + '%';
+            } else if (openPositions.length > 0 && walletEquity > 0) {
+                const uwAbs = Math.min(0, unrealized);
+                const uwPct = (uwAbs / walletEquity) * 100;
+                underwater = `${uwPct.toFixed(2)}% (${uwAbs.toFixed(2)} ${stakeCurrency})`;
+            } else {
+                underwater = '0.00%';
+            }
 
             let avgTradesPerDay = 'N/A';
             if (profit.first_trade_timestamp && tradeCount > 0) {
