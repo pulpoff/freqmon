@@ -64,6 +64,17 @@
         
         .server-card {
             height: 100%;
+            /* Prevent accidental text selection when scrolling through cards on mobile.
+               Only the mini-stat values (below) opt back in to being selectable. */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            user-select: none;
+        }
+
+        .server-card .mini-stat-value {
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            user-select: text;
         }
         
         .server-header {
