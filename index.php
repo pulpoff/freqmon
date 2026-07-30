@@ -65,6 +65,23 @@
         .server-card {
             height: 100%;
         }
+
+        /* Prevent accidental text selection when scrolling/tapping (cards, charts,
+           tables and modals). Only the top-of-card mini-stat values opt back in,
+           and inputs stay selectable so forms keep working. */
+        body {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            user-select: none;
+        }
+
+        .mini-stat-value,
+        input,
+        textarea {
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            user-select: text;
+        }
         
         .server-header {
             display: flex;
