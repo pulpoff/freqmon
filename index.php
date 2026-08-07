@@ -76,6 +76,7 @@
         }
 
         .mini-stat-value,
+        .logs-output,
         input,
         textarea {
             -webkit-user-select: text;
