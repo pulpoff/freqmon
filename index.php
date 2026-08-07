@@ -328,6 +328,9 @@
         .badge-offline { background-color: rgba(248, 81, 73, 0.2); color: var(--accent-red); border: 1px solid var(--accent-red); }
         .badge-live { font-size: 0.72rem; padding: 0.25em 0.55em; }
         .badge-dry { background-color: rgba(210, 153, 34, 0.2); color: var(--accent-yellow); border: 1px solid var(--accent-yellow); }
+        /* Bot reachable but trader stopped: red-tinted badge + red warning mark */
+        .badge-stopped { background-color: rgba(248, 81, 73, 0.2) !important; color: var(--accent-red) !important; border: 1px solid var(--accent-red) !important; font-size: 0.72rem; padding: 0.25em 0.55em; }
+        .stopped-mark { color: var(--accent-red) !important; }
         
         .mini-stats {
             display: grid;
@@ -1596,7 +1599,11 @@
             const winningTrades = profit.winning_trades || 0;
             const losingTrades = profit.losing_trades || 0;
             const strategy = config.strategy || '-';
-            
+            // Bot is reachable but the trader is stopped. /show_config exposes state
+            // ("running"/"stopped"); port liveness and /ping stay green when stopped,
+            // so this is the only reliable signal that trading has actually halted.
+            const isStopped = isOnline && config.state && String(config.state).toLowerCase() !== 'running';
+
             // Calculate trades done today
             const today = new Date();
             const todayStr = today.getFullYear() + '-' + 
@@ -1664,7 +1671,9 @@
                                 ${isOnline && coinsEnabled ? `<span class="coin-icon-btn" onclick="showTradedCoins(${server.server_num}, event)" title="Traded Coins"><i class="bi bi-currency-exchange"></i></span>` : ''}
                                 ${openTrades.length > 0 ? `<span class="open-trades-count" onclick="showOpenTrades(${server.server_num}, event)">${openTrades.length}</span>` : ''}
                                 ${!isOnline ? `<span class="badge badge-offline"><i class="bi bi-x-circle me-1"></i>Offline</span>` :
-                                    (config.dry_run === false ? `<span class="badge badge-live"><i class="bi bi-lightning-charge me-1"></i>Live</span>` : '')}
+                                    (config.dry_run === false
+                                        ? `<span class="badge badge-live${isStopped ? ' badge-stopped' : ''}"${isStopped ? ' title="Bot is stopped"' : ''}><i class="bi bi-lightning-charge me-1"></i>Live${isStopped ? '<i class="bi bi-exclamation-triangle-fill ms-1 stopped-mark"></i>' : ''}</span>`
+                                        : (isStopped ? `<span class="badge badge-stopped" title="Bot is stopped"><i class="bi bi-exclamation-triangle-fill me-1"></i>Stopped</span>` : ''))}
                             </div>
                         </div>
                         
