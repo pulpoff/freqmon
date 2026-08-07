@@ -370,6 +370,7 @@ class FreqtradeClient
         $essentialFields = [
             'strategy', 'stake_currency', 'stake_amount', 'dry_run',
             'trading_mode', 'timeframe', 'exchange', 'max_open_trades',
+            'state',
         ];
 
         $filtered = [];
