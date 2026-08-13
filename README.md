@@ -1,6 +1,6 @@
 # <img src="icon.svg" alt="freqmon icon" height="32"> freqmon
 
-A PHP-based dashboard to monitor multiple FreqTrade trading bot instances from a single interface.
+A PHP-based dashboard to monitor multiple FreqTrade trading bot instances from a mobile phone or desktop.
 
 
 
