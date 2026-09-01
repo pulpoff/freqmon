@@ -3,5 +3,8 @@
 *.cache.tmp.*
 *.lock
 
+# Runtime equity/drawdown tracking state
+equity_stats.json
+
 # But keep this .gitignore
 !.gitignore

@@ -181,6 +181,25 @@ class Dashboard
             }
         }
 
+        // Record mark-to-market equity so we can report the true max drawdown /
+        // underwater over the run (the freqtrade API only gives current snapshots
+        // and its closed-trade drawdown misses open-position dips).
+        $tracker = new EquityTracker();
+        $now = time();
+        foreach ($results as $num => $data) {
+            if (empty($data['online']) || !isset($data['balance']['total'])) {
+                continue;
+            }
+            $mtm = (float) $data['balance']['total'];
+            $unrealized = 0.0;
+            if (is_array($data['status'] ?? null)) {
+                foreach ($data['status'] as $openTrade) {
+                    $unrealized += (float) ($openTrade['profit_abs'] ?? 0);
+                }
+            }
+            $results[$num]['equity_stats'] = $tracker->update((int) $num, $mtm, $unrealized, $now);
+        }
+
         return $results;
     }
 

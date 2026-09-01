@@ -913,31 +913,32 @@
             const numCoins = Array.isArray(whitelist.whitelist) ? whitelist.whitelist.length
                 : (whitelist.length !== undefined ? whitelist.length : 'N/A');
 
-            const maxDrawdownPct = profit.max_drawdown !== undefined && profit.max_drawdown !== null
-                ? (profit.max_drawdown * 100).toFixed(2) + '%' : null;
-            const maxDrawdownAbs = profit.max_drawdown_abs !== undefined && profit.max_drawdown_abs !== null
-                ? parseFloat(profit.max_drawdown_abs).toFixed(4) + ' ' + stakeCurrency : null;
-            const drawdown = maxDrawdownPct && maxDrawdownAbs ? `${maxDrawdownPct} (${maxDrawdownAbs})`
-                : (maxDrawdownPct || maxDrawdownAbs || 'N/A');
+            // Max Drawdown & Underwater = worst point over the whole run.
+            // We combine two sources and take the deeper of each:
+            //   - freqtrade /profit: realized (closed-trade) drawdown since start.
+            //   - equity_stats: mark-to-market drawdown that freqmon records each poll,
+            //     which also captures open-position (unrealized) dips the API omits.
+            const eq = server.equity_stats || {};
+            const ftDdAbs = (profit.max_drawdown_abs !== undefined && profit.max_drawdown_abs !== null)
+                ? Math.abs(parseFloat(profit.max_drawdown_abs)) : 0;
+            const ftDdPct = (profit.max_drawdown !== undefined && profit.max_drawdown !== null)
+                ? Math.abs(profit.max_drawdown) : 0; // fraction
+            const ftUwPct = (profit.max_relative_drawdown !== undefined && profit.max_relative_drawdown !== null)
+                ? Math.abs(profit.max_relative_drawdown) : ftDdPct; // fraction
 
-            // Underwater = how far current equity sits below its realized high-water mark.
-            // Closed-trade drawdown (Max Drawdown above) is 0 for a 100% win rate, but open
-            // positions can still be underwater, which is what this reflects.
-            // balance.total already includes open-trade unrealized P/L, so the realized
-            // wallet (high-water mark) = balance.total - unrealized.
-            const openPositions = server.status || [];
-            const unrealized = openPositions.reduce((s, t) => s + (t.profit_abs || 0), 0);
-            const walletEquity = (balance.total || 0) - unrealized;
-            let underwater;
-            if (profit.max_relative_drawdown !== undefined && profit.max_relative_drawdown !== null && profit.max_relative_drawdown > 0) {
-                underwater = (profit.max_relative_drawdown * 100).toFixed(2) + '%';
-            } else if (openPositions.length > 0 && walletEquity > 0) {
-                const uwAbs = Math.min(0, unrealized);
-                const uwPct = (uwAbs / walletEquity) * 100;
-                underwater = `${uwPct.toFixed(2)}% (${uwAbs.toFixed(2)} ${stakeCurrency})`;
+            // Keep the drawdown's absolute value and % from the same source
+            let ddAbs, ddPct;
+            if ((eq.max_dd_abs || 0) >= ftDdAbs) {
+                ddAbs = eq.max_dd_abs || 0;
+                ddPct = eq.max_dd_pct || 0;
             } else {
-                underwater = '0.00%';
+                ddAbs = ftDdAbs;
+                ddPct = ftDdPct;
             }
+            const uwPct = Math.max(ftUwPct, eq.max_uw_pct || 0);
+
+            const drawdown = `${(ddPct * 100).toFixed(2)}% (${ddAbs.toFixed(4)} ${stakeCurrency})`;
+            const underwater = `${(uwPct * 100).toFixed(2)}%`;
 
             let avgTradesPerDay = 'N/A';
             if (profit.first_trade_timestamp && tradeCount > 0) {
