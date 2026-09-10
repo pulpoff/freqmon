@@ -154,6 +154,29 @@ class Dashboard
             }
         }
 
+        // 2026-09-10 balance fix: freqtrade's /balance "total" adds each open futures position on top of a
+        // stake-currency balance that already contains that position's collateral (double count in dry-run,
+        // "Simulated balances"). Show wallet = stake-currency balance + unrealised P/L of open trades instead.
+        foreach ($results as $num => &$sd) {
+            if (empty($sd['balance']) || !is_array($sd['balance'])) { continue; }
+            $bal = $sd['balance'];
+            $stake = $bal['stake'] ?? 'USDT';
+            $wallet = null;
+            foreach ($bal['currencies'] ?? [] as $c) {
+                if (($c['currency'] ?? '') === $stake && empty($c['is_position'])) { $wallet = (float) ($c['balance'] ?? 0); break; }
+            }
+            if ($wallet === null) { continue; }
+            $unreal = 0.0;
+            if (!empty($sd['status']) && is_array($sd['status'])) {
+                foreach ($sd['status'] as $t) { $unreal += (float) ($t['profit_abs'] ?? 0); }
+            }
+            $sd['balance']['total_raw'] = $bal['total'] ?? null;
+            $sd['balance']['wallet'] = $wallet;
+            $sd['balance']['unrealized'] = $unreal;
+            $sd['balance']['total'] = $wallet + $unreal;
+        }
+        unset($sd);
+
         // Phase 4: trades (limit depends on profit.closed_trade_count)
         $tradeReqs = [];
         foreach ($tokens as $num => $token) {
