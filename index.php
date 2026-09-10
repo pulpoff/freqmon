@@ -522,7 +522,7 @@
             <div class="col-6 col-md-4 col-xl-2">
                 <div class="card stat-card">
                     <div class="stat-value" id="totalBalance">-</div>
-                    <div class="stat-label">Total Balance</div>
+                    <div class="stat-label">Total Equity (wallet + open P/L)</div>
                 </div>
             </div>
             <div class="col-6 col-md-4 col-xl-2">
@@ -972,7 +972,8 @@
                 ['Trading Volume', tradingVolume],
                 ['First Trade', escapeHtml(firstTrade)],
                 ['Latest Trade', escapeHtml(latestTrade)],
-                ['Balance', `${(balance.total || 0).toFixed(2)} ${escapeHtml(stakeCurrency)}`]
+                ['Equity now (wallet + open P/L)', `${(balance.total || 0).toFixed(2)} ${escapeHtml(stakeCurrency)}`],
+                ['Wallet (realised)', `${(balance.wallet ?? balance.total ?? 0).toFixed(2)} ${escapeHtml(stakeCurrency)}`]
             ]);
 
             document.getElementById('strategyModal').classList.add('show');
