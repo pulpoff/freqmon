@@ -6,5 +6,9 @@
 # Runtime equity/drawdown tracking state
 equity_stats.json
 
+# Auth / brute-force protection runtime state
+login_bans.json
+sessions.json
+
 # But keep this .gitignore
 !.gitignore

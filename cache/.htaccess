@@ -1,0 +1,10 @@
+# Block all web access to runtime cache/state files:
+# serialized API data (*.cache), session token hashes (sessions.json),
+# the brute-force ban list (login_bans.json) and equity tracking state.
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>

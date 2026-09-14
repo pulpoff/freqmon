@@ -631,7 +631,19 @@
         </div>
     </div>
 
+    <!-- Banned Overlay (shown when the host is locked out) -->
+    <div class="banned-overlay" id="bannedOverlay">
+        <svg class="banned-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" aria-hidden="true"><path d="M73 39.1C63.6 29.7 48.4 29.7 39.1 39.1C29.8 48.5 29.7 63.7 39 73.1L567 601.1C576.4 610.5 591.6 610.5 600.9 601.1C610.2 591.7 610.3 576.5 600.9 567.2L517.9 484.2L529.3 472.8C538.7 463.4 538.7 448.2 529.3 438.9C519.9 429.6 504.7 429.5 495.4 438.9L484.1 450.2L460.3 426.4C478.2 402.9 490.2 374.7 494.4 344.1L528 344.1L528 360.1C528 373.4 538.7 384.1 552 384.1C565.3 384.1 576 373.4 576 360.1L576 280.1C576 266.8 565.3 256.1 552 256.1C538.7 256.1 528 266.8 528 280.1L528 296.1L494.4 296.1C490.2 265.4 478.1 237.3 460.3 213.8L484.1 190L495.4 201.3C504.8 210.7 520 210.7 529.3 201.3C538.6 191.9 538.7 176.7 529.3 167.4L472.7 110.7C463.3 101.3 448.1 101.3 438.8 110.7C429.5 120.1 429.4 135.3 438.8 144.6L450.1 155.9L426.3 179.7C402.8 161.9 374.7 149.8 344 145.6L344 112L360 112C373.3 112 384 101.3 384 88C384 74.7 373.3 64 360 64L280 64C266.7 64 256 74.7 256 88C256 101.3 266.7 112 280 112L296 112L296 145.6C265.3 149.8 237.2 161.9 213.7 179.7L189.9 156L201.2 144.6C210.6 135.2 210.6 120 201.2 110.7C191.8 101.4 176.6 101.3 167.3 110.7L155.9 122.1L73 39.1zM145.6 296L112 296L112 280C112 266.7 101.3 256 88 256C74.7 256 64 266.7 64 280L64 360C64 373.3 74.7 384 88 384C101.3 384 112 373.3 112 360L112 344L145.6 344C149.8 374.7 161.9 402.8 179.7 426.3L155.9 450.1L144.6 438.8C135.2 429.4 120 429.4 110.7 438.8C101.4 448.2 101.3 463.4 110.7 472.7L167.3 529.3C176.7 538.7 191.9 538.7 201.2 529.3C210.5 519.9 210.6 504.7 201.2 495.4L189.9 484.1L213.7 460.3C237.2 478.2 265.4 490.2 296 494.4L296 528L280 528C266.7 528 256 538.7 256 552C256 565.3 266.7 576 280 576L360 576C373.3 576 384 565.3 384 552C384 538.7 373.3 528 360 528L344 528L344 494.4C357.4 492.6 370.4 489.2 382.7 484.5L155.5 257.3C150.8 269.6 147.5 282.5 145.6 296z"/></svg>
+        <div class="banned-text">Banned</div>
+        <div class="banned-sub" id="bannedSub"></div>
+    </div>
+
     <style>
+        .banned-overlay { display: none; position: fixed; inset: 0; z-index: 3000; background: var(--bg-primary, #0d1117); flex-direction: column; align-items: center; justify-content: center; gap: 1rem; }
+        .banned-overlay.show { display: flex; }
+        .banned-icon { width: 120px; height: 120px; color: var(--accent-red); fill: currentColor; }
+        .banned-text { color: var(--accent-red); font-size: 2rem; font-weight: 700; letter-spacing: 1px; }
+        .banned-sub { color: var(--text-secondary); font-size: 0.85rem; text-align: center; padding: 0 1rem; }
         .password-modal-content { background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; padding: 1.5rem; width: 280px; text-align: center; }
         .password-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 1rem; color: #fff; }
         .password-input { width: 100%; padding: 0.5rem; font-size: 0.8rem; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-tertiary); color: var(--text-primary); margin-bottom: 0.5rem; }
@@ -2058,6 +2070,16 @@
             try {
                 if (isFirstLoad) loadingProgress.textContent = 'Fetching server data...';
                 const response = await fetch('api.php');
+
+                // Session expired / not authenticated — stop refreshing and re-prompt.
+                if (response.status === 401) {
+                    if (refreshInterval) { clearInterval(refreshInterval); refreshInterval = null; }
+                    loadingModal.classList.remove('show');
+                    document.getElementById('passwordModal').classList.add('show');
+                    document.getElementById('passwordInput').focus();
+                    return;
+                }
+
                 const result = await response.json();
 
                 if (!result.success) {
@@ -2273,8 +2295,21 @@
 
         async function checkAuth() {
             const response = await fetch('api.php?action=check_auth');
-            const result = await response.json();
-            return result.auth_required;
+            return await response.json();
+        }
+
+        // Show the full-page banned state and stop accepting passwords.
+        function showBanned(retryAfter) {
+            if (refreshInterval) { clearInterval(refreshInterval); refreshInterval = null; }
+            document.getElementById('passwordModal').classList.remove('show');
+            const sub = document.getElementById('bannedSub');
+            if (sub) {
+                const mins = Math.ceil((retryAfter || 0) / 60);
+                sub.textContent = mins > 0
+                    ? `Too many failed attempts. Try again in about ${mins} minute${mins !== 1 ? 's' : ''}.`
+                    : 'Too many failed attempts.';
+            }
+            document.getElementById('bannedOverlay').classList.add('show');
         }
 
         async function submitPassword(e) {
@@ -2290,11 +2325,13 @@
             const result = await response.json();
 
             if (result.success) {
-                setCookie('freqmon_auth', btoa(password), 30);
+                // Server set an HttpOnly session cookie; nothing sensitive stored client-side.
                 document.getElementById('passwordModal').classList.remove('show');
                 startDashboard();
+            } else if (result.banned) {
+                showBanned(result.retry_after);
             } else {
-                errorEl.textContent = 'Invalid password';
+                errorEl.textContent = result.error || 'Invalid password';
                 document.getElementById('passwordInput').value = '';
                 document.getElementById('passwordInput').focus();
             }
@@ -2307,22 +2344,15 @@
         }
 
         async function initApp() {
-            const authRequired = await checkAuth();
+            const auth = await checkAuth();
 
-            if (authRequired) {
-                const savedAuth = getCookie('freqmon_auth');
-                if (savedAuth) {
-                    const response = await fetch('api.php?action=verify_password', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ password: atob(savedAuth) })
-                    });
-                    const result = await response.json();
-                    if (result.success) {
-                        startDashboard();
-                        return;
-                    }
-                }
+            if (auth.banned) {
+                showBanned(auth.retry_after);
+                return;
+            }
+
+            if (auth.auth_required && !auth.authenticated) {
+                // A valid server session (HttpOnly cookie) is required; show the prompt otherwise.
                 document.getElementById('passwordModal').classList.add('show');
                 document.getElementById('passwordInput').focus();
             } else {
