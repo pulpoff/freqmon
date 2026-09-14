@@ -8,9 +8,25 @@ ini_set('display_errors', 1);
 
 require_once __DIR__ . '/src/Config.php';
 require_once __DIR__ . '/src/FreqtradeClient.php';
+require_once __DIR__ . '/src/AuthSession.php';
 
 use FreqtradeDashboard\Config;
 use FreqtradeDashboard\FreqtradeClient;
+use FreqtradeDashboard\AuthSession;
+
+// This page dumps full server diagnostics (balances, trades, config). It must
+// never be reachable without a valid dashboard session when a password is set.
+try {
+    $dbgPassword = Config::getInstance()->getPassword();
+} catch (\Throwable $e) {
+    $dbgPassword = null;
+}
+if ($dbgPassword !== null && !(new AuthSession())->isAuthenticated()) {
+    http_response_code(403);
+    header('Content-Type: text/plain; charset=utf-8');
+    echo 'Forbidden';
+    exit;
+}
 
 header('Content-Type: text/html; charset=utf-8');
 

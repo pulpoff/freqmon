@@ -4,10 +4,17 @@
     Deny from all
 </FilesMatch>
 
-# Deny access to src directory
+# Deny access to any dotfile (.env, .env.example, .git, ...)
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Deny access to src and cache directories (source, serialized data,
+# session tokens, ban list) — cache/ holds sessions.json and *.cache dumps.
 <IfModule mod_rewrite.c>
     RewriteEngine On
     RewriteRule ^src/ - [F,L]
+    RewriteRule ^cache/ - [F,L]
 </IfModule>
 
 # Default index

@@ -17,43 +17,137 @@ require_once __DIR__ . '/src/Cache.php';
 require_once __DIR__ . '/src/FreqtradeClient.php';
 require_once __DIR__ . '/src/ParallelHttp.php';
 require_once __DIR__ . '/src/EquityTracker.php';
+require_once __DIR__ . '/src/LoginGuard.php';
+require_once __DIR__ . '/src/AuthSession.php';
 require_once __DIR__ . '/src/Dashboard.php';
 
 use FreqtradeDashboard\Config;
 use FreqtradeDashboard\Cache;
 use FreqtradeDashboard\Dashboard;
 use FreqtradeDashboard\FreqtradeClient;
+use FreqtradeDashboard\AuthSession;
 
 try {
     $config = Config::getInstance();
     date_default_timezone_set($config->getTimezone());
 
+    $configPassword = $config->getPassword();
+    $authRequired = $configPassword !== null;
+    $session = new AuthSession();
+
+    // Gate for every data-returning endpoint: without a valid session (when a
+    // password is configured) nothing is served. This is the real protection —
+    // the password modal alone is only cosmetic.
+    $requireAuth = function () use ($authRequired, $session) {
+        if ($authRequired && !$session->isAuthenticated()) {
+            http_response_code(401);
+            echo json_encode(['success' => false, 'auth_required' => true, 'error' => 'Authentication required']);
+            exit;
+        }
+    };
+
     $action = isset($_GET['action']) ? $_GET['action'] : '';
 
     if ($action === 'check_auth') {
-        $password = $config->getPassword();
+        $banned = false;
+        $retryAfter = 0;
+        $guardCfg = $config->getGuard();
+        if ($guardCfg !== null && $authRequired) {
+            $guard = new \FreqtradeDashboard\LoginGuard($guardCfg['tries'], $guardCfg['hours'] * 3600);
+            $st = $guard->check($guard->getClientIp());
+            $banned = $st['banned'];
+            $retryAfter = $st['retry_after'];
+        }
         echo json_encode([
             'success' => true,
-            'auth_required' => $password !== null,
+            'auth_required' => $authRequired,
+            'authenticated' => !$authRequired || $session->isAuthenticated(),
+            'banned' => $banned,
+            'retry_after' => $retryAfter,
         ]);
         exit;
     }
 
     if ($action === 'verify_password') {
-        $input = json_decode(file_get_contents('php://input'), true);
-        $providedPassword = $input['password'] ?? '';
-        $configPassword = $config->getPassword();
+        $guardCfg = $config->getGuard();
+        $guard = null;
+        $ip = null;
 
-        if ($configPassword === null || $providedPassword === $configPassword) {
-            echo json_encode(['success' => true]);
-        } else {
-            echo json_encode(['success' => false, 'error' => 'Invalid password']);
+        if ($guardCfg !== null) {
+            $throttle = isset($guardCfg['throttle']) ? (float) $guardCfg['throttle'] : 2.0;
+            $guard = new \FreqtradeDashboard\LoginGuard($guardCfg['tries'], $guardCfg['hours'] * 3600, $throttle);
+            $ip = $guard->getClientIp();
+
+            // 1) Hard ban check
+            $status = $guard->check($ip);
+            if ($status['banned']) {
+                http_response_code(429);
+                header('Retry-After: ' . $status['retry_after']);
+                echo json_encode([
+                    'success' => false,
+                    'banned' => true,
+                    'retry_after' => $status['retry_after'],
+                    'error' => 'Too many failed attempts. Locked for ' . ceil($status['retry_after'] / 60) . ' more minute(s).',
+                ]);
+                exit;
+            }
+
+            // 2) Rate limit: reject attempts that come in too fast
+            $thr = $guard->throttle($ip);
+            if ($thr['throttled']) {
+                http_response_code(429);
+                header('Retry-After: ' . $thr['retry_after']);
+                echo json_encode([
+                    'success' => false,
+                    'throttled' => true,
+                    'retry_after' => $thr['retry_after'],
+                    'error' => 'Slow down — please wait a moment before trying again.',
+                ]);
+                exit;
+            }
         }
+
+        $input = json_decode(file_get_contents('php://input'), true);
+        $providedPassword = (string) (is_array($input) ? ($input['password'] ?? '') : '');
+
+        // Constant-time comparison to avoid leaking the password via timing.
+        if ($configPassword === null || hash_equals((string) $configPassword, $providedPassword)) {
+            if ($guard !== null) {
+                $guard->recordSuccess($ip);
+            }
+            $session->issue(); // mint server-side session + HttpOnly cookie
+            echo json_encode(['success' => true]);
+            exit;
+        }
+
+        if ($guard !== null) {
+            $res = $guard->recordFailure($ip);
+            if ($res['banned']) {
+                http_response_code(429);
+                header('Retry-After: ' . $res['retry_after']);
+                echo json_encode([
+                    'success' => false,
+                    'banned' => true,
+                    'retry_after' => $res['retry_after'],
+                    'error' => 'Too many failed attempts. Locked for ' . ceil($res['retry_after'] / 60) . ' minute(s).',
+                ]);
+                exit;
+            }
+            echo json_encode([
+                'success' => false,
+                'remaining' => $res['remaining'],
+                'error' => 'Invalid password. ' . $res['remaining'] . ' attempt(s) left before lockout.',
+            ]);
+            exit;
+        }
+
+        echo json_encode(['success' => false, 'error' => 'Invalid password']);
         exit;
     }
 
     // Handle pair_candles request
     if ($action === 'pair_candles') {
+        $requireAuth();
         ob_clean(); // Clear any previous output
 
         $serverNum = isset($_GET['server']) ? intval($_GET['server']) : 1;
@@ -119,6 +213,7 @@ try {
     
     // Handle logs request
     if ($action === 'logs') {
+        $requireAuth();
         ob_clean(); // Clear any previous output
 
         if (!$config->isLogsEnabled()) {
@@ -167,6 +262,9 @@ try {
         echo json_encode($result);
         exit;
     }
+
+    // Main dashboard payload — protected: no valid session, no data.
+    $requireAuth();
 
     $dashboard = new Dashboard();
     $serversData = $dashboard->fetchAllServers();

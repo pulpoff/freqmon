@@ -124,7 +124,9 @@ class Cache
             return null;
         }
 
-        $data = @unserialize($content);
+        // allowed_classes => false: cache only ever holds arrays/scalars, so refuse to
+        // instantiate any object even if a cache file were tampered with (no gadget chains).
+        $data = @unserialize($content, ['allowed_classes' => false]);
         if ($data === false && $content !== serialize(false)) {
             return null;
         }

@@ -147,4 +147,33 @@ class Config
         $value = (int) $this->getSetting('PARALLEL_FETCH', 20);
         return max(1, $value);
     }
+
+    /**
+     * Brute-force guard for the dashboard password.
+     * GUARD=<tries>,<hours>[,<throttle seconds>]
+     * (e.g. "3,3" = ban 3 hours after 3 failed tries; optional 3rd value is the
+     * minimum seconds between attempts, default 2). Defaults to 3,3,2.
+     * Set GUARD=OFF (or 0) to disable.
+     *
+     * @return array{tries: int, hours: int, throttle: float}|null  null when disabled
+     */
+    public function getGuard(): ?array
+    {
+        $raw = trim((string) $this->getSetting('GUARD', '3,3'));
+        if ($raw === '') {
+            return ['tries' => 3, 'hours' => 3, 'throttle' => 2.0];
+        }
+        $upper = strtoupper($raw);
+        if ($upper === 'OFF' || $upper === 'FALSE' || $raw === '0') {
+            return null;
+        }
+        $parts = array_map('trim', explode(',', $raw));
+        $tries = isset($parts[0]) && $parts[0] !== '' ? (int) $parts[0] : 3;
+        $hours = isset($parts[1]) && $parts[1] !== '' ? (int) $parts[1] : 3;
+        $throttle = isset($parts[2]) && $parts[2] !== '' ? (float) $parts[2] : 2.0;
+        if ($tries < 1) $tries = 3;
+        if ($hours < 1) $hours = 3;
+        if ($throttle < 0) $throttle = 2.0;
+        return ['tries' => $tries, 'hours' => $hours, 'throttle' => $throttle];
+    }
 }

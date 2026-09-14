@@ -78,7 +78,16 @@ NOTIFY=10                # Duration in seconds to show activity star after new t
 
 # Security
 PASSWORD=your_password   # Password protection for dashboard access (optional, leave empty to disable)
+GUARD=3,3                # Brute-force guard: <tries>,<ban hours>[,<throttle secs>] (default 3,3,2; OFF to disable)
 ```
+
+When `PASSWORD` is set, all data endpoints require a valid server-side session
+(an HttpOnly cookie issued on login) — the password is never stored in the
+browser, and the dashboard data is never served without authentication. Failed
+logins are rate-limited and, after `GUARD` tries, the host is banned for the
+configured number of hours. Examples: `GUARD=1,1` (ban 1h after 1 failure),
+`GUARD=10,24` (10 tries, 24h ban), `GUARD=3,3,5` (3 tries, 3h ban, min 5s
+between attempts).
 
 ### 4. FreqTrade API Configuration
 
@@ -198,6 +207,12 @@ freqmon/
 3. Enable HTTPS if accessible outside localhost
 4. Use strong, unique passwords for each FreqTrade instance
 5. Enable dashboard password protection by setting `PASSWORD` in `.env`
+6. Keep the brute-force guard on (`GUARD`, on by default) to throttle and ban
+   password-guessing hosts
+7. Ensure your web server denies access to `.env`, `src/`, and `cache/`. The
+   bundled `.htaccess` files do this for Apache; on **nginx** add e.g.
+   `location ~ /(\.env|src|cache)/ { deny all; }` (and block dotfiles) so
+   session tokens and serialized data can't be downloaded
 
 ## License
 
